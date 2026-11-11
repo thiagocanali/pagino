@@ -60,3 +60,14 @@ Diagnóstico por consultas somente leitura:
 **TASK 02 — Bootstrap técnico local e CI de qualidade.** Criar Nuxt/Vue/TypeScript/Nitro com versões estáveis fixadas, página técnica acessível, endpoint de saúde sem dados sensíveis, Vitest, Playwright e GitHub Actions. Validar build para Vercel sem deploy e sem banco remoto. Ver [roadmap](docs/ROADMAP.md).
 
 Desenvolvimento futuro usa branches e PRs revisadas. Merges são autorizados após validação e checks obrigatórios aprovados. Nenhum projeto/serviço pago deve ser criado implicitamente; nenhum deploy em produção está autorizado.
+
+## Persistência local — incremento inicial da TASK 03
+
+```sh
+npm run test:db
+npm run db:generate
+```
+
+O primeiro comando requer Docker Linux no socket local: cria e remove PostgreSQL descartável com senha aleatória e dados sintéticos; não usa banco existente. O segundo gera migrations offline, sem executar SQL. Não há comando de migration remota ou deploy configurado.
+
+`server/db/` contém núcleo de tenant e identidade gerada oficialmente; `migrations/` contém DDL e policies; `tests/integration/` verifica segurança com roles restritas reais. A UI ainda não usa o banco, pois auth/autorizações de endpoint pertencem à próxima fase. O contexto de tenant só poderá vir de sessão validada no servidor, nunca de payload do navegador.

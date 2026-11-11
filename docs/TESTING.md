@@ -55,3 +55,11 @@ MVP só é liberado com RF/RNF atendidos, testes negativos de isolamento, fluxo 
 ## Evidência local — TASK 02 (11/11/2026)
 
 Lint e typecheck aprovados. Vitest: 21 testes de limites de entrada aprovados. Playwright: 8 testes aprovados em desktop/mobile com Chromium instalado, sobre build Node real: navegação/hidratação, health/no-store/request_id, validação/erros/sem persistência, JSON inválido, tamanho excessivo, origem externa e página 404. Build Node e build preset Vercel aprovados; nenhum deploy realizado. CI criada, mas não executada no GitHub porque publicação está bloqueada por limite de revisão automática. Não afirmar aprovação de checks remotos.
+
+## Evidência local — TASK 03, núcleo inicial
+
+`npm run test:db` cria PostgreSQL 17.11 em Docker, limitado a loopback, com senha aleatória em memória, aplica migrations e as reaplica como no-op, roda 14 testes e encerra o container. O teste recusa DB sem nome pagino_test e host local. Não usa Supabase remoto nem variável de produção. Para executar, requer Docker Linux disponível no socket local.
+
+Aprovados: role não-owner/sem BYPASSRLS, FORCE RLS, contexto ausente, dois tenants, INSERT/UPDATE WITH CHECK, UPDATE/DELETE de alvo alheio, FK tenant/site, reuso concorrente/rollback sem contexto residual, revogação e suspensão, viewer sem escrita/elevação, gravação de página e auditoria atômicas, rollback por falha de auditoria, auth/domínio segregados, public_reader sem drafts e login Better Auth real via adapter e role restrita. O teste de auth não prova envio de e-mail, recuperação, cookies HTTPS ou autorização de endpoint, ainda não implementados.
+
+Geração Drizzle após migrations: nenhuma diferença de schema. CI expandida com test:db, actions fixadas por SHA e checkout sem persistência de credenciais. Dados e senhas são sintéticos/efêmeros.
