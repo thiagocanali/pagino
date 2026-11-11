@@ -51,3 +51,7 @@ Preview autorizado usa recursos isolados e fixtures sintéticas; testar HTTPS/co
 PR registra comandos, resultado, ambiente/versões e limitações; anexar trace/screenshot apenas sem dados reais. Falha não é ocultada por retry indiscriminado; investigar flakes. Rodar testes adequados ao incremento e não declarar os não executados como aprovados.
 
 MVP só é liberado com RF/RNF atendidos, testes negativos de isolamento, fluxo editorial E2E, acessibilidade manual, métricas com condições registradas, ensaio de restauração de banco/objetos e revisão humana. RPO/RTO e plano comercial devem ser comprovados antes do piloto. Não criar infraestrutura nesta tarefa para antecipar estes testes.
+
+## Evidência local — TASK 02 (11/11/2026)
+
+Lint e typecheck aprovados. Vitest: 21 testes de limites de entrada aprovados. Playwright: 8 testes aprovados em desktop/mobile com Chromium instalado, sobre build Node real: navegação/hidratação, health/no-store/request_id, validação/erros/sem persistência, JSON inválido, tamanho excessivo, origem externa e página 404. Build Node e build preset Vercel aprovados; nenhum deploy realizado. CI criada, mas não executada no GitHub porque publicação está bloqueada por limite de revisão automática. Não afirmar aprovação de checks remotos.
