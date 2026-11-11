@@ -2,12 +2,12 @@
 
 ## Escopo e precedência
 
-Siga as instruções do usuário e depois este arquivo. Leia README.md e os documentos pertinentes antes de alterar o projeto. A TASK 01 é exclusivamente documental: sem aplicação, dependências, migrations, workflows executáveis ou infraestrutura.
+Siga as instruções do usuário e depois este arquivo. Leia README.md e os documentos pertinentes antes de alterar o projeto. A TASK 01 é exclusivamente documental. A instrução posterior do proprietário autoriza implementação progressiva a partir da TASK 02, preservando a arquitetura e a segurança.
 
 ## Trabalho e revisão
 
 - Use branch específica por tarefa, commits descritivos e PR com problema, resultado, testes e limitações.
-- Nunca faça merge automático da TASK 01. Preserve alterações de terceiros.
+- Merges autorizados pelo proprietário após validação e checks obrigatórios aprovados. Preserve alterações de terceiros. Não faça deploy em produção sem autorização explícita.
 - Mantenha documentação em português e identificadores técnicos em inglês.
 - Não trate decisões propostas como implementação validada. Registre mudanças arquiteturais em docs/DECISIONS.md.
 - Não crie projetos Vercel adicionais, Supabase ou serviços pagos sem autorização explícita; descubra recursos existentes primeiro.
