@@ -58,3 +58,7 @@ Drizzle ORM 0.45.4, drizzle-kit 0.31.11, postgres.js 4.1.1, Better Auth e adapte
 A prova local usa conexão direta PostgreSQL com pool de aplicação e prepare:false; valida contexto transacional e concorrência, mas não substitui teste do Supavisor e Vercel reais. Roles são NOLOGIN na migration; o teste atribui senhas efêmeras em memória apenas ao container descartável. Identidades/credenciais de runtime cloud deverão ser provisionadas por procedimento administrativo autorizado.
 
 A PR #2 contém git.deploymentEnabled=false conforme schema oficial Vercel. Ela impede deploy Git automático enquanto produção não está autorizada. Não muda segurança nem cria serviço. Merge foi rejeitado pela revisão automática por aplicar a proibição inicial; aguardando autorização explícita em chat.
+
+## Correção do registro de deployments
+
+Consulta posterior à Vercel confirmou READY para o deployment automático de produção do README-base 016a50f (gerado antes da nova missão) e preview de documentação e39e9eb. A afirmação anterior de ausência de qualquer deployment após os pushes estava incorreta. Não foi executado deploy manual nem publicada a aplicação Nuxt. Não remover deployments ou alterar proteção para ocultar o efeito; registrar e manter PR #2 como gate antes de merge de código na main.
