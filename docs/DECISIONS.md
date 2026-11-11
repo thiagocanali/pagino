@@ -44,3 +44,9 @@ Alternativa Better Auth vs Supabase Auth pode ser reavaliada se prova da 03 indi
 ## Atualização da missão
 
 O proprietário autorizou implementação progressiva e merges após validação, substituindo a restrição inicial de não realizar merge da primeira PR. Continua proibido deploy em produção sem autorização explícita. A numeração de fases 03–08 passa a seguir a missão posterior, com os incrementos detalhados preservados no roadmap. Falha de revisão automática por limite de uso bloqueou publicação remota nesta sessão, sem julgamento de risco; não contornar o controle.
+
+## ADR 014 — Bootstrap local implementado
+
+Node 24.22.1/npm 11.9.0, Nuxt 4.6.4 (Nitro 2.13.6/Vite 8.3.8 no lockfile), Vue 3.5.45, TypeScript 5.9.3, Zod 4.6.7, ESLint 10.14.0, Vitest 5.1.0 e Playwright 1.65.0. Versões exatas e dependências transitivas em package-lock.json. ESLint 9 inicialmente escolhido estava sem suporte; substituído por 10, compatível com o módulo Nuxt. Imports comuns usam alias oficial #shared, após falha observada no bundle com caminho relativo. Sem fontes remotas, analytics, integração Sites, banco ou deploy.
+
+Validação de configuração é stateless e explicitamente não cadastra instituição. O endpoint público desta fase não acessa dados; ele rejeita origem divergente, JSON inválido, campos extras e corpo maior que 8 KiB (checagem de Content-Length e bytes lidos; limite de buffering upstream deve ser revisto antes de exposição em produção). Não habilitar endpoints de domínio antes da autenticação/autorização.

@@ -4,7 +4,30 @@ Seu site. Seu jeito. Seu controle.
 
 SaaS multi-tenant para igrejas, ONGs, associações e pequenas empresas criarem e administrarem sites institucionais com templates configuráveis, sem depender de programadores. Primeiro template: `institutional-classic`.
 
-## Estado atual — TASK 01
+## Execução local — TASK 02
+
+Requer Node 24.22.1 e npm 11.9.0. Não requer banco ou credenciais nesta fase.
+
+```sh
+npm ci
+npm run dev
+```
+
+Rotas: `/` (layout público), `/admin` (fundação técnica, sem dados institucionais ou autenticação), `/admin/configuracao` (validação sem persistência), `GET /api/health` e `POST /api/setup/validate`.
+
+```sh
+npm run check
+npm run build
+npx playwright install chromium
+npm run test:e2e
+npm run build:vercel
+```
+
+Em ambiente com Chromium já instalado, usar `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/caminho/do/chromium npm run test:e2e`. Playwright inicia e encerra o servidor do build Node. `build:vercel` apenas compila artefatos locais; não faz deploy. A CI declarada executa as verificações em PR, mas ainda não rodou remotamente devido ao bloqueio de publicação.
+
+Organização: `app/` para layouts/páginas/componentes; `server/` para Nitro; `shared/` para schemas/tipos; `tests/unit` e `tests/e2e`. Formulário usa Zod compartilhado, confirma validação real do backend e não promete cadastro, disponibilidade de slug ou salvamento. Interfaces administrativas desta fase não expõem recursos institucionais; autorização deve ser implementada antes de conectá-los.
+
+## Diagnóstico inicial — TASK 01
 
 Fundação documental em 11/11/2026. A especificação da TASK 01 não implementa funcionalidades; a execução posterior passa a desenvolver o código em branches próprias. As decisões são propostas para revisão nesta PR; suporte documentado não equivale a integração testada. Não há comando de instalação ou execução nesta etapa.
 

@@ -1,0 +1,38 @@
+{
+  "name": "pagino",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "npm@11.9.0",
+  "engines": {
+    "node": ">=24.0.0 <25",
+    "npm": ">=11 <12"
+  },
+  "scripts": {
+    "dev": "nuxt dev --host 0.0.0.0",
+    "build": "nuxt build",
+    "build:vercel": "nuxt build --preset vercel",
+    "preview": "node .output/server/index.mjs",
+    "prepare": "nuxt prepare",
+    "lint": "eslint .",
+    "typecheck": "nuxt typecheck",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "check": "npm run lint && npm run typecheck && npm test"
+  },
+  "dependencies": {
+    "h3": "1.15.11",
+    "nuxt": "4.6.4",
+    "vue": "3.5.45",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@nuxt/eslint": "1.17.0",
+    "@playwright/test": "1.65.0",
+    "@types/node": "24.10.1",
+    "eslint": "10.14.0",
+    "typescript": "5.9.3",
+    "vitest": "5.1.0",
+    "vue-tsc": "3.3.14"
+  }
+}
