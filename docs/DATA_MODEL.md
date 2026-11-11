@@ -48,3 +48,7 @@ Auditoria registra campos alterados, sem reconstrução de cada edição de rasc
 Durante piloto, reter publicações e mídias referenciadas; rever custo/teto antes de escalar. Auditoria por 180 dias como política inicial sujeita à revisão legal. Expirar e limpar tokens conforme biblioteca. Suspensão não exclui dados automaticamente. Exclusão definitiva exige procedimento autorizado LGPD, incluindo objetos, referências e backup. Anonimização pode anular FK de ator, preservando registro pseudônimo quando houver base legal. Sem cascade destrutivo de tenant sem política e teste.
 
 Schemas físicos previstos: pagino para domínio e pagino_auth para Better Auth. Não usar nem modificar o schema auth gerenciado do Supabase. Confirmar suporte/mapeamento do adapter na TASK 03.
+
+## Implementação inicial e limites
+
+Migrations 0000/0001 implementam somente tabelas Better Auth oficiais e o núcleo institutions, memberships, sites, pages e audit_logs. O restante deste documento é modelo-alvo. Ainda não há publication pointer, eventos, convites, mídia, settings ou APIs institucionais. Auditoria mínima desta prova usa ator obrigatório, ação e recurso; operador/política de anonimização serão ampliados antes do provisionamento real. Não presumir que campos planejados já existam. Grants não permitem que runtime altere memberships nem provisione instituições; os serviços operacionais seguros virão com as próximas fases.

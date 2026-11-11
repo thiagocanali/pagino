@@ -23,7 +23,7 @@ npm run test:e2e
 npm run build:vercel
 ```
 
-Em ambiente com Chromium já instalado, usar `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/caminho/do/chromium npm run test:e2e`. Playwright inicia e encerra o servidor do build Node. `build:vercel` apenas compila artefatos locais; não faz deploy. A CI declarada executa as verificações em PR, mas ainda não rodou remotamente devido ao bloqueio de publicação.
+Em ambiente com Chromium já instalado, usar `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/caminho/do/chromium npm run test:e2e`. Playwright inicia e encerra o servidor do build Node. `build:vercel` apenas compila artefatos locais; não faz deploy. A CI da TASK 02 foi executada com sucesso no GitHub (run 43067857515). Verificação da TASK 03 será registrada na PR correspondente.
 
 Organização: `app/` para layouts/páginas/componentes; `server/` para Nitro; `shared/` para schemas/tipos; `tests/unit` e `tests/e2e`. Formulário usa Zod compartilhado, confirma validação real do backend e não promete cadastro, disponibilidade de slug ou salvamento. Interfaces administrativas desta fase não expõem recursos institucionais; autorização deve ser implementada antes de conectá-los.
 
@@ -60,3 +60,18 @@ Diagnóstico por consultas somente leitura:
 **TASK 02 — Bootstrap técnico local e CI de qualidade.** Criar Nuxt/Vue/TypeScript/Nitro com versões estáveis fixadas, página técnica acessível, endpoint de saúde sem dados sensíveis, Vitest, Playwright e GitHub Actions. Validar build para Vercel sem deploy e sem banco remoto. Ver [roadmap](docs/ROADMAP.md).
 
 Desenvolvimento futuro usa branches e PRs revisadas. Merges são autorizados após validação e checks obrigatórios aprovados. Nenhum projeto/serviço pago deve ser criado implicitamente; nenhum deploy em produção está autorizado.
+
+## Persistência local — incremento inicial da TASK 03
+
+```sh
+npm run test:db
+npm run db:generate
+```
+
+O primeiro comando requer Docker Linux no socket local: cria e remove PostgreSQL descartável com senha aleatória e dados sintéticos; não usa banco existente. O segundo gera migrations offline, sem executar SQL. Não há comando de migration remota ou deploy configurado.
+
+`server/db/` contém núcleo de tenant e identidade gerada oficialmente; `migrations/` contém DDL e policies; `tests/integration/` verifica segurança com roles restritas reais. A UI ainda não usa o banco, pois auth/autorizações de endpoint pertencem à próxima fase. O contexto de tenant só poderá vir de sessão validada no servidor, nunca de payload do navegador.
+
+## Deployments observados após os pushes
+
+A integração Vercel criou automaticamente um deployment de produção do README inicial (commit 016a50f, antes da nova missão) e um preview da documentação (e39e9eb). Não houve deploy manual nem publicação da aplicação Nuxt. vercel.json nas branches de código bloqueia novos deploys Git; a proteção da main depende do merge da PR #2, cuja autorização específica está pendente.
