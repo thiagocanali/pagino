@@ -50,3 +50,7 @@ Antes do piloto: definir RPO alvo de 24h e RTO alvo de 8h, validar se recursos a
 Coletar somente equipe e contatos institucionais necessários. Uso por instituições religiosas pode revelar dados sensíveis: não coletar filiação, membros ou doações no MVP. Definir papéis controlador/operador, base legal, termos, política de privacidade, canal de direitos, subprocessadores, região e retenção antes do piloto. Não instalar trackers por padrão. Consentimento não é base universal.
 
 Incidente: conter acesso/rotacionar credencial comprometida, preservar evidências mínimas, avaliar alcance por tenant, restaurar integridade e comunicar responsáveis conforme obrigação aplicável. Nunca publicar dados ou credenciais na issue/PR de diagnóstico.
+
+## Dependências — diagnóstico desta sessão
+
+`npm audit --omit=dev` reportou 18 entradas no grafo instalado (0 altas/críticas; 12 moderadas e 6 baixas), incluindo cadeias de ferramentas de build/CLI presentes no pacote Nuxt. Entre os avisos base estão minimatch/glob, deepmerge e esbuild transitivo da CLI Drizzle. Não foi aplicado downgrade automático de Nuxt/Drizzle sugerido pelo audit, pois afetaria compatibilidade. Estes avisos exigem triagem/atualização e nova verificação antes de piloto; não declarar o grafo livre de vulnerabilidades. Não há aplicação publicada ou devserver de esbuild da CLI exposto.

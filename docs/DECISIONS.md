@@ -50,3 +50,15 @@ O proprietário autorizou implementação progressiva e merges após validação
 Node 24.22.1/npm 11.9.0, Nuxt 4.6.4 (Nitro 2.13.6/Vite 8.3.8 no lockfile), Vue 3.5.45, TypeScript 5.9.3, Zod 4.6.7, ESLint 10.14.0, Vitest 5.1.0 e Playwright 1.65.0. Versões exatas e dependências transitivas em package-lock.json. ESLint 9 inicialmente escolhido estava sem suporte; substituído por 10, compatível com o módulo Nuxt. Imports comuns usam alias oficial #shared, após falha observada no bundle com caminho relativo. Sem fontes remotas, analytics, integração Sites, banco ou deploy.
 
 Validação de configuração é stateless e explicitamente não cadastra instituição. O endpoint público desta fase não acessa dados; ele rejeita origem divergente, JSON inválido, campos extras e corpo maior que 8 KiB (checagem de Content-Length e bytes lidos; limite de buffering upstream deve ser revisto antes de exposição em produção). Não habilitar endpoints de domínio antes da autenticação/autorização.
+
+## ADR 015 — Prova local de persistência
+
+Drizzle ORM 0.45.4, drizzle-kit 0.31.11, postgres.js 4.1.1, Better Auth e adapter 1.7.20. Schema de identidade gerado por auth@1.7.20, adaptado somente para schema próprio pagino_auth e timestamps com timezone. Login real por role auth_runtime provou o mapeamento; não há handler público de autenticação. Migrations iniciais geradas por Drizzle, políticas/roles em migration customizada revisável. Sem db:push ou migration em build.
+
+A prova local usa conexão direta PostgreSQL com pool de aplicação e prepare:false; valida contexto transacional e concorrência, mas não substitui teste do Supavisor e Vercel reais. Roles são NOLOGIN na migration; o teste atribui senhas efêmeras em memória apenas ao container descartável. Identidades/credenciais de runtime cloud deverão ser provisionadas por procedimento administrativo autorizado.
+
+A PR #2 contém git.deploymentEnabled=false conforme schema oficial Vercel. Ela impede deploy Git automático enquanto produção não está autorizada. Não muda segurança nem cria serviço. Merge foi rejeitado pela revisão automática por aplicar a proibição inicial; aguardando autorização explícita em chat.
+
+## Correção do registro de deployments
+
+Consulta posterior à Vercel confirmou READY para o deployment automático de produção do README-base 016a50f (gerado antes da nova missão) e preview de documentação e39e9eb. A afirmação anterior de ausência de qualquer deployment após os pushes estava incorreta. Não foi executado deploy manual nem publicada a aplicação Nuxt. Não remover deployments ou alterar proteção para ocultar o efeito; registrar e manter PR #2 como gate antes de merge de código na main.

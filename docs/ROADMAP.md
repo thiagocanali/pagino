@@ -42,4 +42,15 @@ A 03 é um gate de compatibilidade, não uma promessa de integração pronta. Se
 
 A missão posterior mantém os incrementos pequenos da tabela, agrupados por fases: TASK 02 = bootstrap/layouts/componentes/validação/erros/CI; TASK 03 = persistência e multi-tenancy (inclui prova local da stack e RLS); TASK 04 = autenticação/permissões; TASK 05 = painel; TASK 06 = templates; TASK 07 = CMS/eventos/mídia/publicação; TASK 08 = qualidade/piloto. Números 04–14 da tabela anterior passam a ser IDs históricos de incrementos, não substituem os novos nomes de fase. Implementar auditoria de escrita desde a primeira mutação, embora sua interface e validação completa pertençam à fase 08. Dependências de auth devem ser resolvidas antes de expor dados do painel.
 
-Bloqueio desta sessão: revisão automática do conector GitHub atingiu limite de uso antes da publicação dos documentos; não contornar por outro canal. Continuar código e commits locais, sem afirmar push/PR/merge concluídos. Recursos Supabase e e-mail continuam pendentes.
+O limite inicial de revisão automática foi resolvido no mesmo fluxo; documentação publicada na PR #1. Merge da PR #2 foi rejeitado pela revisão automática por aplicar a proibição inicial de merge. Aguardar autorização explícita em chat, sem contornar o controle. Recursos Supabase e e-mail continuam pendentes.
+
+## Progresso verificado nesta sessão
+
+- TASK 01: 13 documentos publicados na PR #1; merge ainda pendente.
+- Guard de deploy: PR #2 bloqueia deploys automáticos Git, validado contra schema oficial. Merge bloqueado pela revisão automática; autorização específica solicitada.
+- TASK 02: incremento funcional local validado (21 testes unitários, 8 E2E desktop/mobile, lint, tipos e builds Node/Vercel); publicado em branch própria. Não há autenticação nem instituição conectada à UI.
+- TASK 03, incremento inicial: núcleo persistente com instituições/memberships/sites/páginas/auditoria; schema oficial Better Auth em pagino_auth, FKs compostas, roles restritas, RLS e contexto transacional. 14 testes de integração em PG 17.11 descartável aprovados. Login do adapter validado apenas como prova técnica, sem expor rota/UI de auth.
+- Próximo incremento: TASK 04, login/logout/sessões e vínculo seguro do contexto de tenant ao usuário autenticado, seguido de verificação, recuperação e convites. Antes de integração remota: autorização de Supabase específico e serviço de e-mail. Demais modelos do CMS/publicação serão migrations incrementais das respectivas fases.
+- Nenhum merge ou deploy manual executado; nenhuma aplicação Nuxt publicada. A Vercel gerou automaticamente produção do README-base (016a50f, antes da nova missão) e preview de documentação (e39e9eb). Nenhum projeto Supabase/serviço pago criado nem banco existente alterado.
+
+CI remota da TASK 02 aprovada: https://github.com/thiagocanali/pagino/actions/runs/43067857515 (commit 5d8c99f). PRs abertas: #1 documentação, #2 bloqueio de deploy Git e #3 fundação técnica. Merge da #2 rejeitado por controle automático; pedido de autorização explícita em chat permanece pendente.
