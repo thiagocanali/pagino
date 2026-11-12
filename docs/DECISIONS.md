@@ -84,3 +84,15 @@ Confirmação posterior do proprietário autoriza continuidade das integrações
 O cliente Vue deste incremento usa fetch/DTO próprios para expor apenas id/nome/e-mail; não usa o cliente Better Auth para buscar o objeto bruto de sessão. A identidade, assinatura/validação de cookies e sessões continuam integralmente no Better Auth.
 
 A continuação #5 foi integrada em 12/11/2026 após CI aprovada (run 43204551451); merge 2d2ac27 na main, árvore 278348c279831a775d77376d070148a26953e81a idêntica à persistência validada.
+
+## ADR 017 — Links de recuperação/verificação de uso único
+
+Better Auth 1.7.20 continua como única identidade, hashing e validação nativa. Adapter Drizzle usa transaction:true; reset nativo consome verification e revoga sessões na mesma transação. `verification.storeIdentifier=hashed` evita identificador de reset em claro.
+
+JWT nativo de verificação é reutilizável até expirar. Um desafio de entrega opaco (32 bytes aleatórios) acrescenta uso único: guardar SHA-256, token nativo cifrado com symmetricEncrypt da própria biblioteca, propósito/usuário/prazo e estado de entrega. O browser recebe apenas o segredo opaco em fragmento; router.replace limpa endereço e history.state antes da confirmação. Sem mutação por GET ou login automático.
+
+User é bloqueado antes de challenge e das operações nativas; conclusão invalida irmãos e revoga sessões. Login usa api.signInEmail dentro de transação com o mesmo lock, preservando nosso limiter atômico/validação de origem. Isso evita tanto corrida de reset/login quanto conflito do limiter HTTP nativo dentro de uma transação externa. Não são desabilitadas as proteções públicas: origem, schemas e limite próprio continuam obrigatórios.
+
+Transporte de runtime nesta entrega é HTTP autenticado somente em loopback, com redirect recusado e timeout. CLI grava mensagens/configuração privadas e não envia e-mail externo. Fora de loopback essa configuração é rejeitada; transporte comercial depende de autorização/configuração futura. Credenciais não são versionadas.
+
+Solicitações públicas têm resposta genérica e piso de 500 ms para reduzir diferenças de tempo. Falha de envio é marcada failed e logada por requestId, sem PII/tokens; persistência pode falhar antes do registro e ainda gera log seguro. Reenvio ocorre por nova solicitação; worker/retries operacionais, retenção e prova de entrega externa pertencem ao gate de produção. Não prometer tempo constante sob falhas de rede.
