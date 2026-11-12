@@ -6,3 +6,5 @@
 @media(max-width:700px){.login-section{grid-template-columns:1fr;gap:12px;padding-top:30px}.login-panel{max-width:none}.page-list li{flex-direction:column}.workspace-shell .header-actions{gap:10px;font-size:.75rem}.workspace-main{padding-top:30px}}
 
 .user-name{max-width:min(35vw,200px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.auth-links{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin-bottom:20px}.login-panel [role=status] .button{margin-top:20px}

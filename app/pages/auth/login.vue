@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { loginSchema } from '#shared/schemas/login'
 useSeoMeta({ title: 'Entrar — Pagino', robots: 'noindex, nofollow' })
+const { data: capabilities } = await useFetch<{ emailRecovery: boolean; emailVerification: boolean }>('/api/auth/capabilities')
 const form = reactive({ email: '', password: '' })
 const fields = ref<Record<string, string>>({})
 const pending = ref(false)
@@ -42,7 +43,7 @@ async function submit() {
         <p v-if="failure" role="alert" class="feedback feedback-error">{{ failure }}</p>
         <button class="button button-primary" type="submit" :disabled="pending">{{ pending ? 'Entrando…' : 'Entrar' }} <span aria-hidden="true">→</span></button>
       </form>
-      <p class="field-hint">Cadastro, convites e recuperação de senha ainda não estão disponíveis nesta etapa.</p>
+      <div v-if="capabilities?.emailRecovery" class="auth-links"><NuxtLink to="/auth/recuperar" class="text-button">Esqueci minha senha</NuxtLink><NuxtLink to="/auth/verificar-email" class="text-button">Confirmar meu e-mail</NuxtLink></div><p v-else class="field-hint">Envio de e-mail não conectado neste ambiente.</p><p class="field-hint">Cadastro público e convites ainda não estão disponíveis.</p>
     </div>
   </section>
 </template>
