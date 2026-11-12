@@ -62,3 +62,23 @@ A PR #2 contém git.deploymentEnabled=false conforme schema oficial Vercel. Ela 
 ## Correção do registro de deployments
 
 Consulta posterior à Vercel confirmou READY para o deployment automático de produção do README-base 016a50f (gerado antes da nova missão) e preview de documentação e39e9eb. A afirmação anterior de ausência de qualquer deployment após os pushes estava incorreta. Não foi executado deploy manual nem publicada a aplicação Nuxt. Não remover deployments ou alterar proteção para ocultar o efeito; registrar e manter PR #2 como gate antes de merge de código na main.
+
+## ADR 016 — Acesso por sessão e contexto de tenant (incremento 04)
+
+Handler Nitro expõe somente login e logout Better Auth. Cadastro, recuperação e demais endpoints ficam indisponíveis até implementação completa. Login exige e-mail verificado. Sessões duram no máximo 7 dias, sem renovação deslizante ou cookie cache; cada API privada consulta a sessão real. DTO de usuário contém só id/nome/e-mail, sem token ou objeto de sessão.
+
+Roles de conexão são verificadas ao iniciar: nomes auth_runtime/app_runtime e ausência de superuser, criação de roles/bancos e BYPASSRLS. Configuração fica em runtimeConfig privado, com placeholders vazios, origem única e HTTPS obrigatório fora de loopback. Sem configuração válida, o acesso falha fechado com 503; não há credencial fallback.
+
+Login recebe limite adicional de 5 tentativas/minuto por IP, com UPSERT atômico em PostgreSQL e chave HMAC, sem armazenar IP bruto. O limiter nativo Better Auth também permanece habilitado em banco. Cabeçalhos de IP do cliente não são confiados: Nitro usa o socket e sobrescreve o header interno; IP indisponível compartilha bucket conservador. Ajustar proxy confiável na homologação, sem liberar X-Forwarded-For arbitrário.
+
+Logout confirma DELETE da sessão antes de emitir sucesso, pois o handler nativo pode absorver falha de exclusão. Depois usa Better Auth para expirar cookie. As duas operações são idempotentes; falha de DB não é reportada como logout bem-sucedido. Apenas a sessão atual é encerrada.
+
+A fundação técnica foi movida de /admin para /foundation. /admin agora é área autenticada, com middleware de navegação e checagens independentes no servidor. Recuperação, convites, verificação por e-mail e provisionamento assistido continuam como próximos incrementos da TASK 04, sem botões que aparentem funcionar.
+
+PRs #2 e #1 integradas após confirmação explícita em chat. Merge da #3 foi rejeitado pela revisão automática por limitar essa confirmação a #2/#1; #3/#4 permanecem abertas aguardando autorização específica. Produção continua bloqueada por vercel.json na main.
+
+## Atualização de integração em 12/11/2026
+
+Confirmação posterior do proprietário autoriza continuidade das integrações #3/#4. A #3 já estava na main; #4 havia sido integrada na branch da TASK 02 depois disso. Criada PR #5 para concluir a integração da mesma árvore na main sem recriar código ou force push.
+
+O cliente Vue deste incremento usa fetch/DTO próprios para expor apenas id/nome/e-mail; não usa o cliente Better Auth para buscar o objeto bruto de sessão. A identidade, assinatura/validação de cookies e sessões continuam integralmente no Better Auth.

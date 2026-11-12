@@ -54,3 +54,15 @@ Incidente: conter acesso/rotacionar credencial comprometida, preservar evidênci
 ## Dependências — diagnóstico desta sessão
 
 `npm audit --omit=dev` reportou 18 entradas no grafo instalado (0 altas/críticas; 12 moderadas e 6 baixas), incluindo cadeias de ferramentas de build/CLI presentes no pacote Nuxt. Entre os avisos base estão minimatch/glob, deepmerge e esbuild transitivo da CLI Drizzle. Não foi aplicado downgrade automático de Nuxt/Drizzle sugerido pelo audit, pois afetaria compatibilidade. Estes avisos exigem triagem/atualização e nova verificação antes de piloto; não declarar o grafo livre de vulnerabilidades. Não há aplicação publicada ou devserver de esbuild da CLI exposto.
+
+## Controles implementados no incremento 04
+
+Cookie HttpOnly/SameSite=Lax/host-only e Secure quando a origem é HTTPS; cookie cache desabilitado, expiração absoluta de 7 dias, origem única validada e ausência de signup. Tentativas são limitadas atomicamente em Postgres e persistem entre instâncias. Resposta de login para conta ausente, senha errada ou e-mail não verificado é genérica.
+
+APIs GET /api/me, /api/me/institutions e /api/institutions/{id}/pages|audit requerem sessão real. Contexto é derivado da identidade autenticada e revalidado por membership/RLS; cabeçalhos x-user-id/x-role não concedem permissão. Falta de sessão gera 401; falta de papel no tenant conhecido, 403; tenant alheio/inativo ou ID inválido, 404. Memória global guarda conexões, nunca identidade/tenant de requisição.
+
+Segredos de teste são efêmeros. E2E de autenticação não grava traces/vídeos ou storageState, evitando cookies em artefatos. Leitura de JSON de login e /api/me é testada para ausência de tokens. Falha de exclusão no logout não pode retornar sucesso.
+
+Antes do piloto: recuperar/verificar e-mail com transporte real autorizado; provisionamento de usuários e convites; rate limiting por proxy de hospedagem confirmado; limite upstream de corpo (o parser limita 8 KiB, mas bufferiza antes da validação efetiva); teste de Supavisor/Vercel e cookies HTTPS na infraestrutura real. Os testes HTTPS locais do factory não substituem essa homologação.
+
+O HMAC anonimiza a chave do contador adicional de tentativas; os metadados de sessão e o limiter nativo Better Auth podem armazenar o IP normalizado recebido pelo servidor. A política de retenção/limpeza desses registros precisa ser aplicada antes do piloto; não confundir chave pseudonimizada com ausência completa de dados de rede.

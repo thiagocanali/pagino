@@ -54,3 +54,15 @@ O limite inicial de revisão automática foi resolvido no mesmo fluxo; documenta
 - Nenhum merge ou deploy manual executado; nenhuma aplicação Nuxt publicada. A Vercel gerou automaticamente produção do README-base (016a50f, antes da nova missão) e preview de documentação (e39e9eb). Nenhum projeto Supabase/serviço pago criado nem banco existente alterado.
 
 CI remota da TASK 02 aprovada: https://github.com/thiagocanali/pagino/actions/runs/43067857515 (commit 5d8c99f). PRs abertas: #1 documentação, #2 bloqueio de deploy Git e #3 fundação técnica. Merge da #2 rejeitado por controle automático; pedido de autorização explícita em chat permanece pendente.
+
+## Atualização após confirmação em chat e início da TASK 04
+
+PRs #2 (bloqueio de deploy Git) e #1 (documentação) integradas. #3 e #4 seguem abertas: revisão automática rejeitou o merge da #3 por entender que a confirmação cobria somente #2/#1; aprovação específica solicitada.
+
+Primeiro incremento da TASK 04 implementa login/logout, sessão, matriz de permissões, seleção de instituição e leitura autorizada de rascunhos. Faltam recuperação, convites, envio/verificação de e-mail e provisionamento operacional; não considerar a fase completa. A próxima entrega deve ligar esses fluxos com coletor local verificável, mantendo gate de transporte real antes de produção.
+
+## Estado em 12/11/2026
+
+PRs #1 e #2 integradas na main; #3 já integrada. #4 foi integrada em feat/task-02-fundacao-tecnica depois do fechamento da #3. A continuação #5 leva a mesma árvore de persistência para main; aguardar sua CI e integração antes de afirmar que o núcleo 03 está na branch principal.
+
+Incremento 04 preparado com sessões, login/logout, roles, workspace institucional somente de leitura e rate limiting atômico. Validação local: 34 unitários, 25 integrações Postgres e 18 testes de navegador (10 da fundação/sem configuração, 8 com autenticação e banco). Sem projeto Supabase novo, sem migration em banco existente e sem deploy. Próximo incremento da fase 04: recuperação/verificação, convites e provisionamento operacional, começando por transporte local testável e mantendo autorização de serviço real antes do piloto.
