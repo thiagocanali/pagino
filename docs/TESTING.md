@@ -75,3 +75,9 @@ Cobertura adicional: origem falsa, signup não exposto, campos extra, enumeraç�
 As suítes Playwright usam diretórios de resultado separados: execução paralela inicial colidiu nos artefatos compartilhados, sem falha funcional da aplicação. A configuração foi corrigida e a suíte afetada repetida com sucesso. Auth E2E não grava cookies/storageState/traces/vídeos. O resultado remoto deste incremento é registrado abaixo; não inferir aprovação a partir das PRs anteriores.
 
 CI remota do incremento 04 aprovada: https://github.com/thiagocanali/pagino/actions/runs/43205402954 (head 165b580). Instalação limpa, lint/tipos, 34 unitários, 25 integrações PG, 10 E2E gerais e 8 E2E autenticados, builds Node/Vercel aprovados. PR #6 integrada pelo merge c8e0ace. Os resultados não comprovam Supabase/Vercel remoto, e-mail real ou prontidão do MVP inteiro.
+
+## Incremento 04-B — evidência local
+
+Aprovados: lint, typecheck, 39 unitários, 34 integrações PG, 10 E2E gerais e 12 E2E auth (desktop/mobile). Builds Node e Vercel aprovados. Testes percorrem solicitação → HTTP de transporte local → mensagem capturada → link → POST → Better Auth/PG → novo login. Expiração, replay entre instâncias, propósito trocado, invalidação de irmãos, callback malicioso, rollback com UPDATE negado e corrida reset/login são verificados.
+
+E2E confirma ausência de auto-login, limpeza de fragmento em endereço/history.state e revogação de sessão antiga. Coletor CLI testado com HTTP 202, inbox não autorizado negado e arquivos 0600; fixture descartada após smoke, sem e-mails externos. Falhas de entrega geram resposta pública indistinguível e logs somente com evento/requestId. CI deste incremento deve reproduzir os comandos existentes.

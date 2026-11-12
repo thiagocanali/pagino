@@ -66,3 +66,13 @@ Segredos de teste são efêmeros. E2E de autenticação não grava traces/vídeo
 Antes do piloto: recuperar/verificar e-mail com transporte real autorizado; provisionamento de usuários e convites; rate limiting por proxy de hospedagem confirmado; limite upstream de corpo (o parser limita 8 KiB, mas bufferiza antes da validação efetiva); teste de Supavisor/Vercel e cookies HTTPS na infraestrutura real. Os testes HTTPS locais do factory não substituem essa homologação.
 
 O HMAC anonimiza a chave do contador adicional de tentativas; os metadados de sessão e o limiter nativo Better Auth podem armazenar o IP normalizado recebido pelo servidor. A política de retenção/limpeza desses registros precisa ser aplicada antes do piloto; não confundir chave pseudonimizada com ausência completa de dados de rede.
+
+## Controles implementados no incremento 04-B
+
+Recuperação e verificação só estão disponíveis com transporte configurado. Runtime aceita apenas transporte de desenvolvimento loopback, sem redirects HTTP; env vazio mantém 503. Coletor requer chave privada, não serve inbox público e grava arquivos 0600 em diretório ignorado pelo Git. Nenhum envio externo foi realizado.
+
+Segredos opacos de 256 bits ficam no fragmento, fora da URL HTTP e do SSR. Router remove fragmento do endereço/history.state. Não armazenar em localStorage, logs, traces ou cookies. DB mantém somente hash do segredo e ciphertext do token nativo; consumo limpa o ciphertext. Endpoints de conclusão são POST, origem única, JSON estrito, limite persistente e prazo/propriedade/propósito checados sob lock. GET não consome nem verifica.
+
+Adapter transacional, lock por usuário e invalidação de irmãos garantem uso único/rollback, revogação das sessões e ausência de sessão residual em corrida com login por senha antiga. Verificação não faz login automático. Respostas de solicitação são genéricas, inclusive sob falha de entrega; operador observa estado/log seguro. Piso de latência não é prova de tempo constante; revisar esse aspecto com provider real.
+
+Antes do piloto: transporte externo autorizado e homologado, retries/monitoramento, purga de registros/mensagens expirados e políticas de retenção de PII. O coletor local é ferramenta de desenvolvimento, não serviço comercial de e-mail.

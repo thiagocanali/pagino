@@ -1,3 +1,4 @@
+import { startLocalMailCollector } from '../helpers/local-mail'
 import { spawn, type ChildProcess } from 'node:child_process'
 import { randomBytes, randomUUID } from 'node:crypto'
 import { createServer } from 'node:net'
@@ -15,7 +16,10 @@ if (!connection || !['127.0.0.1','localhost'].includes(new URL(connection).hostn
 const admin = postgres(connection, { max: 1, prepare: false, onnotice: () => {} })
 const db = drizzle(admin)
 const id = randomUUID(), tenantA = randomUUID(), tenantB = randomUUID(), siteA = randomUUID(), siteB = randomUUID()
+const verificationUser = randomUUID()
+const verificationEmail = `verify-${verificationUser}@example.test`
 const email = `auth-${id}@example.test`, password = randomBytes(24).toString('hex')
+let collector: Awaited<ReturnType<typeof startLocalMailCollector>>
 let child: ChildProcess, origin: string
 let startupLog = ''
 
@@ -28,8 +32,9 @@ test.beforeAll(async () => {
   url.username = 'auth_runtime'; url.password = rolePassword
   const authDatabaseUrl = url.href
   url.username = 'app_runtime'
-  await db.insert(user).values({ id, name: 'Pessoa de teste', email, emailVerified: true })
-  await db.insert(account).values({ id: randomUUID(), accountId: id, providerId: 'credential', userId: id, password: await hashPassword(password), updatedAt: new Date() })
+  await db.insert(user).values([{ id, name: 'Pessoa de teste', email, emailVerified: true }, { id: verificationUser, name: 'E-mail pendente', email: verificationEmail, emailVerified: false }])
+  const hashed = await hashPassword(password)
+  await db.insert(account).values([id, verificationUser].map(userId => ({ id: randomUUID(), accountId: userId, providerId: 'credential', userId, password: hashed, updatedAt: new Date() })))
   await db.insert(institutions).values([{ id: tenantA, name: 'Instituição Horizonte', slug: `horizonte-${tenantA}` }, { id: tenantB, name: 'Instituição Aurora', slug: `aurora-${tenantB}` }])
   await db.insert(memberships).values([{ userId: id, institutionId: tenantA, role: 'owner' }, { userId: id, institutionId: tenantB, role: 'viewer' }])
   await db.insert(sites).values([{ id: siteA, institutionId: tenantA }, { id: siteB, institutionId: tenantB }])
@@ -41,7 +46,8 @@ test.beforeAll(async () => {
   const port = address.port
   await new Promise<void>((resolve, reject) => reservation.close(error => error ? reject(error) : resolve()))
   origin = `http://127.0.0.1:${port}`
-  child = spawn('node', ['.output/server/index.mjs'], { stdio: ['ignore', 'ignore', 'pipe'], env: { ...process.env, HOST: '127.0.0.1', PORT: String(port), NUXT_AUTH_BASE_URL: origin, NUXT_AUTH_SECRET: randomBytes(32).toString('hex'), NUXT_AUTH_DATABASE_URL: authDatabaseUrl, NUXT_DOMAIN_DATABASE_URL: url.href } })
+  collector = await startLocalMailCollector()
+  child = spawn('node', ['.output/server/index.mjs'], { stdio: ['ignore', 'ignore', 'pipe'], env: { ...process.env, HOST: '127.0.0.1', PORT: String(port), NUXT_AUTH_MAIL_URL: collector.url, NUXT_AUTH_MAIL_SECRET: collector.secret, NUXT_AUTH_BASE_URL: origin, NUXT_AUTH_SECRET: randomBytes(32).toString('hex'), NUXT_AUTH_DATABASE_URL: authDatabaseUrl, NUXT_DOMAIN_DATABASE_URL: url.href } })
   child.stderr?.on('data', data => { startupLog = (startupLog + String(data)).slice(-4000) })
   let ready = false
   for (let attempt = 0; attempt < 100; attempt++) {
@@ -58,6 +64,7 @@ test.afterAll(async () => {
     await Promise.race([new Promise(resolve => child.once('exit', resolve)), new Promise(resolve => setTimeout(resolve, 3000))])
     if (child.exitCode === null) child.kill('SIGKILL')
   }
+  await collector?.close()
   await admin.end()
 })
 async function login(page: Page) {
@@ -132,4 +139,57 @@ test('shows a real empty state when all memberships are revoked', async ({ page 
     expect((await page.request.get(`${origin}/api/institutions/${tenantA}/pages`)).status()).toBe(404)
   }
   finally { await db.update(memberships).set({ status: 'active' }).where(eq(memberships.userId, id)) }
+})
+
+function mailLink(recipient: string) {
+  const message = [...collector.messages].reverse().find(item => item.to === recipient)
+  const link = message?.text.match(/http[^\s]+#[a-f0-9]{64}/)?.[0]
+  if (!link) throw new Error('Local delivery was not captured')
+  return link
+}
+
+test('recovery uses local mail, changes the password and revokes sessions', async ({ page }) => {
+  await login(page)
+  await page.goto(origin + '/auth/recuperar')
+  await page.getByLabel('E-mail').fill(email)
+  await page.getByRole('button', { name: 'Solicitar instruções' }).click()
+  await expect(page.getByRole('status')).toContainText('Se houver uma conta elegível')
+  const link = mailLink(email)
+  const token = new URL(link).hash.slice(1)
+  await page.goto(link)
+  await expect(page).toHaveURL(origin + '/auth/redefinir-senha')
+  expect(await page.evaluate(value => JSON.stringify(window.history.state).includes(value), token)).toBe(false)
+  const nextPassword = '  a fresh strong password  '
+  await page.getByLabel('Nova senha', { exact: true }).fill(nextPassword)
+  await page.getByLabel('Confirme a nova senha').fill(nextPassword)
+  await page.getByRole('button', { name: 'Atualizar senha' }).click()
+  await expect(page.getByRole('heading', { name: 'Senha atualizada.' })).toBeVisible()
+  expect((await page.request.get(origin + '/api/me')).status()).toBe(401)
+  const replay = await page.request.post(origin + '/api/auth/reset-password', { headers: { origin }, data: { token, newPassword: 'another synthetic password' } })
+  expect(replay.status()).toBe(400)
+  await page.getByRole('link', { name: 'Ir para entrar' }).click()
+  await page.getByLabel('E-mail').fill(email)
+  await page.getByLabel('Senha', { exact: true }).fill(nextPassword)
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Suas instituições.' })).toBeVisible()
+})
+
+test('email link requires explicit confirmation and does not sign in automatically', async ({ page }) => {
+  await page.goto(origin + '/auth/verificar-email')
+  await page.getByLabel('E-mail').fill(verificationEmail)
+  await page.getByRole('button', { name: 'Solicitar instruções' }).click()
+  await expect(page.getByRole('status')).toContainText('Se houver uma conta elegível')
+  const link = mailLink(verificationEmail)
+  await page.goto(link)
+  await expect(page).toHaveURL(origin + '/auth/confirmar-email')
+  expect(await page.evaluate(value => JSON.stringify(window.history.state).includes(value), new URL(link).hash.slice(1))).toBe(false)
+  expect((await db.select().from(user).where(eq(user.id, verificationUser)))[0]?.emailVerified).toBe(false)
+  await page.getByRole('button', { name: 'Confirmar e-mail', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'E-mail confirmado.' })).toBeVisible()
+  expect((await page.context().cookies()).some(cookie => cookie.name.includes('session_token'))).toBe(false)
+  await page.getByRole('link', { name: 'Ir para entrar' }).click()
+  await page.getByLabel('E-mail').fill(verificationEmail)
+  await page.getByLabel('Senha', { exact: true }).fill(password)
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Nenhuma instituição disponível.' })).toBeVisible()
 })

@@ -54,3 +54,9 @@ Schemas físicos previstos: pagino para domínio e pagino_auth para Better Auth.
 Migrations 0000/0001 implementam somente tabelas Better Auth oficiais e o núcleo institutions, memberships, sites, pages e audit_logs. O restante deste documento é modelo-alvo. Ainda não há publication pointer, eventos, convites, mídia, settings ou APIs institucionais. Auditoria mínima desta prova usa ator obrigatório, ação e recurso; operador/política de anonimização serão ampliados antes do provisionamento real. Não presumir que campos planejados já existam. Grants não permitem que runtime altere memberships nem provisione instituições; os serviços operacionais seguros virão com as próximas fases.
 
 No incremento 04, a migration 0002 acrescenta pagino_auth.rate_limit conforme geração oficial Better Auth, com key única, contador e último instante. Auth_runtime recebe DML explícito nessa tabela; nenhum grant ao público/domínio é acrescentado. As APIs de leitura institucional/autenticação agora existem; demais campos e entidades do modelo-alvo continuam futuros.
+
+## Migration 0003 — desafios de e-mail
+
+`pagino_auth.email_challenges` é identidade global privada, com FK para user, propósito reset/verify, hash único do segredo opaco, token nativo cifrado pelo Better Auth, destinatário, expiração, uso e estado pending/sent/failed. Auth_runtime tem DML; público/domínio não recebem grants. Índices por expiração e usuário/propósito/uso apoiam invalidação e manutenção.
+
+Conclusão bloqueia user e challenge, valida propósito/prazo/entrega/uso, executa a operação Better Auth no mesmo tx e invalida todos os irmãos do propósito. Ciphertext é apagado ao consumir. Reset nativo usa identifiers hashed. Login também bloqueia user, impedindo criar sessão por senha antiga depois da revogação. Limpeza de desafios, verificações e mensagens locais faz parte da operação antes do piloto.

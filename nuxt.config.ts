@@ -1,6 +1,6 @@
 export default defineNuxtConfig({
   compatibilityDate: '2026-11-11',
-  runtimeConfig: { authSecret: '', authBaseUrl: '', authDatabaseUrl: '', domainDatabaseUrl: '' },
+  runtimeConfig: { authSecret: '', authBaseUrl: '', authDatabaseUrl: '', domainDatabaseUrl: '', authMailUrl: '', authMailSecret: '' },
   devtools: { enabled: false },
   modules: ['@nuxt/eslint'],
   css: ['~/assets/css/main.css'],
@@ -12,7 +12,7 @@ export default defineNuxtConfig({
     },
   },
   routeRules: {
-    '/auth/**': { headers: { 'cache-control': 'no-store', 'x-robots-tag': 'noindex, nofollow' } },
+    '/auth/**': { headers: { 'cache-control': 'no-store', 'x-robots-tag': 'noindex, nofollow', 'referrer-policy': 'no-referrer' } },
     '/admin/**': { headers: { 'cache-control': 'no-store', 'x-robots-tag': 'noindex, nofollow' } },
     '/api/**': { headers: { 'cache-control': 'no-store' } },
     '/**': { headers: { 'x-content-type-options': 'nosniff', 'referrer-policy': 'strict-origin-when-cross-origin', 'x-frame-options': 'DENY' } },

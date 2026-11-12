@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { can, roles, type Permission } from '../../shared/auth/permissions'
-import { loginSchema } from '../../shared/schemas/login'
+import { emailRequestSchema, resetPasswordSchema, verificationSchema, loginSchema } from '../../shared/schemas/login'
 
 describe('permission contract', () => {
   const expected: Record<Permission, readonly boolean[]> = {
@@ -26,4 +26,17 @@ describe('login boundary', () => {
     expect(loginSchema.parse({ email: 'USER@example.test', password: ' password with spaces ' })).toEqual({ email: 'user@example.test', password: ' password with spaces ' })
   })
   it.each([{ email: 'bad', password: 'x' }, { email: 'a@example.test', password: '' }, { email: 'a@example.test', password: 'a'.repeat(129) }, { email: 'a@example.test', password: 'ok', role: 'owner' }])('rejects invalid credentials shape', input => expect(loginSchema.safeParse(input).success).toBe(false))
+})
+
+describe('email links and new passwords', () => {
+  it('normalizes request email and rejects callback injection', () => {
+    expect(emailRequestSchema.parse({ email: '  USER@example.test  ' })).toEqual({ email: 'user@example.test' })
+    expect(emailRequestSchema.safeParse({ email: 'user@example.test', callbackURL: 'https://untrusted.example' }).success).toBe(false)
+  })
+  it('accepts an opaque link but not a native JWT or URL', () => {
+    expect(verificationSchema.safeParse({ token: 'a'.repeat(64) }).success).toBe(true)
+    expect(verificationSchema.safeParse({ token: 'native.jwt.token' }).success).toBe(false)
+  })
+  it('preserves spaces in a new password', () => expect(resetPasswordSchema.parse({ token: 'a'.repeat(64), newPassword: '  a valid password  ' }).newPassword).toBe('  a valid password  '))
+  it.each(['short', 'x'.repeat(129)])('rejects a password outside the allowed range', newPassword => expect(resetPasswordSchema.safeParse({ token: 'a'.repeat(64), newPassword }).success).toBe(false))
 })

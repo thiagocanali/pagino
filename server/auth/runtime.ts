@@ -1,3 +1,4 @@
+import { localMailTransport } from './mail'
 import type { H3Event } from 'h3'
 import { createAuthentication, AccessError, type Authentication } from './service'
 import { apiError } from '../utils/api-error'
@@ -6,7 +7,7 @@ let runtime: Promise<Authentication> | undefined
 export function getAuthentication(event: H3Event) {
   if (!runtime) {
     const config = useRuntimeConfig(event)
-    runtime = createAuthentication({ authSecret: config.authSecret, authBaseUrl: config.authBaseUrl, authDatabaseUrl: config.authDatabaseUrl, domainDatabaseUrl: config.domainDatabaseUrl })
+    runtime = createAuthentication({ authSecret: config.authSecret, authBaseUrl: config.authBaseUrl, authDatabaseUrl: config.authDatabaseUrl, domainDatabaseUrl: config.domainDatabaseUrl }, localMailTransport(config.authBaseUrl, config.authMailUrl, config.authMailSecret))
       .catch(() => { runtime = undefined; throw unavailable(event) })
   }
   return runtime

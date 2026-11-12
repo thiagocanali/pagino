@@ -9,7 +9,7 @@ Estado em 12/11/2026. A numeração vigente segue as fases solicitadas pelo prop
 | TASK 01 — Fundação documental | 13 documentos, decisões, requisitos e critérios de aceite; PR #1 integrada |
 | TASK 02 — Fundação técnica | Nuxt/Vue/TypeScript/Nitro, layouts, validação, erros, CI; PR #3 integrada |
 | TASK 03 — Persistência/multi-tenancy | Núcleo institutions/memberships/sites/pages/audit, schema Better Auth, FKs compostas, roles restritas e FORCE RLS; #4 entrou na branch 02 e #5 concluiu integração na main |
-| TASK 04 — Autenticação/permissões | Primeiro incremento integrado na PR #6: login/logout, sessão verificada no servidor, limite persistente atômico, seleção de instituição e leitura autorizada; fase ainda incompleta |
+| TASK 04 — Autenticação/permissões | Login/logout, sessão, roles e leitura institucional na PR #6; incremento 04-B implementa recuperação/verificação com transporte local e links de uso único; convites/provisionamento ainda pendentes |
 
 A base 03 implementa o núcleo, não todas as entidades futuras do CMS. Novos módulos acrescentarão migrations próprias. Escrita de auditoria e testes negativos de isolamento acompanham cada mutação desde a primeira implementação; não serão adiados para a fase 08.
 
@@ -19,8 +19,7 @@ CI da persistência: run 43204551451, aprovado. CI do acesso: run 43205402954, a
 
 | ID / prioridade | Incremento funcional e aceite | Dependências | Riscos e testes |
 | --- | --- | --- | --- |
-| **04-B / P0** | **Recuperação e verificação de e-mail**: solicitação genérica, mensagem capturada em transporte local real, link de uso único, nova senha/verificação, revogação das sessões antigas | 04-A entregue | Expiração/replay, enumeração, origem, token fora de logs, senha com espaços, fluxo navegador → transporte → DB. Produção depende de envio real autorizado |
-| 04-C / P0 | Provisionamento assistido de instituição/site/primeiro owner e convite vinculado ao destinatário; retry sem duplicar | 04-B | Comando operacional restrito, auditoria, idempotência, e-mail correto, falha de entrega recuperável; nenhum superadmin público |
+| **04-C / P0** | **Provisionamento** assistido de instituição/site/primeiro owner e convite vinculado ao destinatário; retry sem duplicar | 04-B | Comando operacional restrito, auditoria, idempotência, e-mail correto, falha de entrega recuperável; nenhum superadmin público |
 | 04-D / P0 | Equipe: convidar, aceitar, reenviar, revogar e transferir ownership conforme matriz | 04-C | Papéis por tenant, admin sem promoção de owner, duas remoções simultâneas não eliminam último owner, reautenticação e convites expirados/reutilizados |
 | 05-A / P1 | Gestão institucional e configurações persistidas no painel; estados vazio/erro/sucesso; suspensão operacional bloqueia painel/público | 04-C, 04-D | Validação de servidor, conflitos, auditoria e isolamento A/B em chamadas diretas |
 | 05-B / P1 | Gestão de equipe no painel com ações reais e mensagens compreensíveis | 04-D | Botões por permissão, backend independente da UI, revogação imediata, acessibilidade por teclado |
@@ -47,3 +46,9 @@ CI da persistência: run 43204551451, aprovado. CI do acesso: run 43205402954, a
 Uma branch/PR por incremento, commits descritivos, checks apropriados e revisão antes do merge. Sem force push ou migrations em build/preview. Testar em Postgres real descartável; mocks não comprovam RLS, pooling ou Storage. Preservar identidade única Better Auth, contexto de tenant por requisição/transação e snapshot público separado do rascunho.
 
 Se um gate externo bloquear um incremento, documentar a ação necessária e executar trabalho independente. Não declarar a fase ou o MVP concluído apenas porque o scaffold ou a CI passaram. O histórico da sequência inicial e das integrações está no Git e em DECISIONS.md.
+
+## Incremento 04-B — implementado em desenvolvimento
+
+Recuperação/verificação com transporte HTTP local real, coletor CLI privado, links opacos e consumo transacional. Senha/sessões e todos os links irmãos são atualizados atomicamente; login usa o mesmo lock de usuário para impedir que uma corrida preserve sessão com senha antiga. Suíte local: 95 testes (39 unidade, 34 PG, 22 navegador), lint/tipos e builds.
+
+Próxima entrega 04-C: provisionamento assistido e convite do primeiro owner. O incremento 04-B não configura entrega externa: provider real, fila/retries operacionais, retenção/purga e homologação continuam gates antes do piloto. Respostas genéricas e piso de 500 ms reduzem enumeração, sem promessa de latência constante sob falha de transporte; transporte externo requer revisão própria.
