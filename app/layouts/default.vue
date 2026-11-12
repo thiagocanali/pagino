@@ -5,7 +5,8 @@
       <BrandMark />
       <div class="header-actions">
         <span class="development-label">Em desenvolvimento</span>
-        <NuxtLink to="/admin" class="button button-outline">Acompanhar a fundação <span aria-hidden="true">↗</span></NuxtLink>
+        <NuxtLink to="/auth/login" class="text-button">Entrar</NuxtLink>
+        <NuxtLink to="/foundation" class="button button-outline">O projeto <span aria-hidden="true">↗</span></NuxtLink>
       </div>
     </header>
     <main id="main"><slot /></main>

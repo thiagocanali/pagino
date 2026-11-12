@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { pgSchema, text, timestamp, boolean, index } from "drizzle-orm/pg-core";
+import { pgSchema, text, timestamp, boolean, index, integer, bigint } from "drizzle-orm/pg-core";
 
 // Generated with auth@1.7.20; namespaced for Pagino. Do not use Supabase managed auth schema.
 export const paginoAuth = pgSchema("pagino_auth");
@@ -95,3 +95,11 @@ export const accountRelations = relations(account, ({ one }) => ({
     references: [user.id],
   }),
 }));
+
+// Generated with auth@1.7.20 for database-backed rate limiting.
+export const rateLimit = pgTable("rate_limit", {
+  id: text("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  count: integer("count").notNull(),
+  lastRequest: bigint("last_request", { mode: "number" }).notNull(),
+});

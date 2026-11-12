@@ -65,3 +65,11 @@ Aprovados: role não-owner/sem BYPASSRLS, FORCE RLS, contexto ausente, dois tena
 Geração Drizzle após migrations: nenhuma diferença de schema. CI expandida com test:db, actions fixadas por SHA e checkout sem persistência de credenciais. Dados e senhas são sintéticos/efêmeros.
 
 Consulta Vercel posterior identificou deployments automáticos da integração Git: produção do README-base 016a50f e preview da documentação e39e9eb. Isso não constitui teste ou publicação da aplicação Nuxt. Guard git.deploymentEnabled=false acompanha os branches de código; merge da proteção na main permanece pendente.
+
+## Incremento 04 — autenticação e autorização
+
+Comandos: npm run check, npm run test:db, npm run build, npm run test:e2e e npm run test:auth:e2e. Resultado local: 34 unitários, 25 integrações PG, 10 E2E da fundação/ausência de configuração e 8 E2E de autenticação, em desktop/mobile. Builds Node e preset Vercel aprovados, sem deploy.
+
+Cobertura adicional: origem falsa, signup não exposto, campos extra, enumeração de contas, e-mail não verificado, cookies HttpOnly/Lax/host-only e Secure sob HTTPS, token ausente de JSON, limite atômico em tentativas concorrentes e persistência entre instâncias, logout com replay negado e falha de DELETE sem sucesso falso, sessão expirada, papéis distintos por tenant, revogação imediata e workspace vazio. Testes de navegador percorrem UI → HTTP Nitro → sessão Better Auth → RLS/PG → resposta/renderização.
+
+As suítes Playwright usam diretórios de resultado separados: execução paralela inicial colidiu nos artefatos compartilhados, sem falha funcional da aplicação. A configuração foi corrigida e a suíte afetada repetida com sucesso. Auth E2E não grava cookies/storageState/traces/vídeos. CI da nova PR ainda precisa ser acompanhada; não inferir resultado a partir das PRs anteriores.

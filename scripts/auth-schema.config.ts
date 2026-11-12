@@ -10,5 +10,6 @@ if (!url) throw new Error('PAGINO_SCHEMA_DATABASE_URL is required for schema gen
 export const auth = betterAuth({
   baseURL: 'http://localhost:3000',
   database: drizzleAdapter(drizzle(postgres(url, { prepare: false }), { schema }), { provider: 'pg', schema }),
+  rateLimit: { enabled: true, storage: 'database' },
   emailAndPassword: { enabled: true },
 })

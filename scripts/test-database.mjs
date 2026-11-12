@@ -27,7 +27,9 @@ try {
   await probe.end({ timeout: 1 })
   if (!ready) throw new Error('Disposable PostgreSQL did not become ready')
   console.log('Running integration tests against a new disposable PostgreSQL 17.11 instance.')
-  const result = spawnSync('npm', ['exec', '--', 'vitest', 'run', '--config', 'vitest.integration.config.ts'], {
+  const browser = process.argv.includes('--browser')
+  const args = browser ? ['exec', '--', 'playwright', 'test', '--config', 'playwright.auth.config.ts'] : ['exec', '--', 'vitest', 'run', '--config', 'vitest.integration.config.ts']
+  const result = spawnSync('npm', args, {
     stdio: 'inherit', env: { ...process.env, PAGINO_TEST_DATABASE_URL: url },
   })
   process.exitCode = result.status ?? 1

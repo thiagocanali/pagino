@@ -1,6 +1,6 @@
 # Arquitetura proposta
 
-Status: proposta para revisão; nenhuma integração foi executada. Fontes oficiais consultadas em 11/11/2026 estão ao final. Versões do bootstrap serão fixadas na TASK 02; dependências de auth/dados na TASK 03; não copiar APIs de versões diferentes.
+Status: modelo-alvo da TASK 01, complementado por bootstrap e integração local de persistência/autenticação validados nos incrementos 02–04. A tabela inicial registra a avaliação original; evidências e limites atuais estão nas ADRs e seções finais. Integração remota continua pendente. Fontes oficiais consultadas em 11/11/2026 estão ao final. Versões do bootstrap serão fixadas na TASK 02; dependências de auth/dados na TASK 03; não copiar APIs de versões diferentes.
 
 ## Stack avaliada
 
@@ -81,3 +81,9 @@ Local/CI com PostgreSQL descartável e dados sintéticos; previews não usam pro
 As fontes estabelecem compatibilidade de componentes, não comprovam a composição inteira. A TASK 03 exige experimento local de adapter + roles + RLS + pooling antes de liberar funcionalidades administrativas. URLs assinadas, limites e proteção Vercel exigem verificação remota posterior autorizada.
 
 Schemas gerenciados do Supabase, inclusive auth e storage, não recebem tabelas/migrations do Pagino. pagino_auth é schema próprio, distinto de auth; o mapeamento do adapter para esse schema é parte da prova da TASK 03. O leitor público recebe acesso mínimo também às referências publication_media e aos metadados de media necessários, com policies que exigem referência pela publicação ativa; nunca à biblioteca inteira. O endpoint de emissão de URL pública verifica essa relação a cada pedido.
+
+## Implementação de acesso — incremento 04
+
+Factory em server/auth/service.ts valida configuração e roles, cria Better Auth/Drizzle e usa schemas privados. Nitro mantém somente pools/configuração em singleton; sessão e tenant são resolvidos por requisição. Middleware Nuxt protege navegação, mas APIs privadas sempre repetem autorização no servidor. A seleção lista memberships próprias e resolve cada instituição ativa com contexto transacional; dados de rascunho não passam por role pública.
+
+Handler /api/auth/[...all] funciona como allowlist de login/logout, valida origem e JSON, aplica limite persistente atômico e remove tokens dos corpos de resposta, preservando cookie. /api/me fornece DTO sem sessão/token. Variáveis NUXT_AUTH_SECRET, NUXT_AUTH_BASE_URL, NUXT_AUTH_DATABASE_URL e NUXT_DOMAIN_DATABASE_URL são privadas e não são populadas no build com credenciais reais.

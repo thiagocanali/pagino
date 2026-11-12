@@ -13,7 +13,7 @@ npm ci
 npm run dev
 ```
 
-Rotas: `/` (layout público), `/admin` (fundação técnica, sem dados institucionais ou autenticação), `/admin/configuracao` (validação sem persistência), `GET /api/health` e `POST /api/setup/validate`.
+Rotas técnicas: `/` (layout público), `/foundation` e `/foundation/configuracao` (fundação/validação sem persistência), `GET /api/health` e `POST /api/setup/validate`. O caminho `/admin` passou a exigir sessão na TASK 04.
 
 ```sh
 npm run check
@@ -70,8 +70,28 @@ npm run db:generate
 
 O primeiro comando requer Docker Linux no socket local: cria e remove PostgreSQL descartável com senha aleatória e dados sintéticos; não usa banco existente. O segundo gera migrations offline, sem executar SQL. Não há comando de migration remota ou deploy configurado.
 
-`server/db/` contém núcleo de tenant e identidade gerada oficialmente; `migrations/` contém DDL e policies; `tests/integration/` verifica segurança com roles restritas reais. A UI ainda não usa o banco, pois auth/autorizações de endpoint pertencem à próxima fase. O contexto de tenant só poderá vir de sessão validada no servidor, nunca de payload do navegador.
+`server/db/` contém núcleo de tenant e identidade gerada oficialmente; `migrations/` contém DDL e policies; `tests/integration/` verifica segurança com roles restritas reais. Na entrega inicial da TASK 03, a UI ainda não usava o banco; o incremento 04 abaixo conecta leituras com sessão e autorização. O contexto de tenant só poderá vir de sessão validada no servidor, nunca de payload do navegador.
 
 ## Deployments observados após os pushes
 
 A integração Vercel criou automaticamente um deployment de produção do README inicial (commit 016a50f, antes da nova missão) e um preview da documentação (e39e9eb). Não houve deploy manual nem publicação da aplicação Nuxt. vercel.json nas branches de código bloqueia novos deploys Git; a proteção da main depende do merge da PR #2, cuja autorização específica está pendente.
+
+## TASK 04 — primeiro incremento de acesso
+
+Login em `/auth/login`, sessão verificada no servidor, seleção de instituições em `/admin` e consulta de rascunhos em `/admin/instituicoes/{id}`. APIs validam a sessão e membership em cada operação; papel muda por instituição. Não há cadastro público, recuperação, convites ou operação de criação de instituição neste incremento. Contas não verificadas não entram.
+
+Configuração privada: copie `.env.example` para `.env.local`, preencha apenas credenciais de ambiente autorizado e execute `npm run dev -- --dotenv .env.local`. Nunca use URL de postgres/admin/owner; as conexões exigem auth_runtime e app_runtime sem privilégios de bypass. Em build Node, injete as variáveis no processo; o servidor não carrega `.env.local` automaticamente. Sem configuração, login/APIs administrativas retornam 503 e dados permanecem indisponíveis. Health e `/foundation` continuam sem banco.
+
+Para provar o fluxo inteiro sem criar recurso remoto:
+
+```sh
+npm run build
+npm run test:db
+npx playwright install chromium
+npm run test:e2e
+npm run test:auth:e2e
+```
+
+`test:auth:e2e` cria PostgreSQL descartável com senha aleatória, aplica migrations, provisiona fixtures sintéticas verificadas, inicia o build Node com roles restritas, testa no navegador e encerra servidor/container. Não configura um ambiente comercial nem fornece contas reais. Na cloud atual, Chromium existente pode ser indicado por PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH.
+
+Estado de integração em 12/11/2026: PRs #1/#2/#3 integradas; a persistência da #4 chegou à main pela continuação #5, após CI aprovada. O incremento 04 de acesso está em branch própria para revisão. O bloqueio de deploy automático está na main desde a PR #2.

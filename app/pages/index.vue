@@ -9,7 +9,7 @@ useSeoMeta({ title: 'Pagino — seu site. seu jeito. seu controle.' })
       <p class="eyebrow"><span class="short-line" /> MAIS AUTONOMIA. MAIS POSSIBILIDADES.</p>
       <h1>Sua instituição<br>tem uma história.<br><span>Dê a ela um lugar.</span></h1>
       <p class="hero-description">Um espaço para apresentar quem vocês são, compartilhar o que fazem e aproximar pessoas. Simples de cuidar. Com a sua identidade.</p>
-      <NuxtLink to="/admin" class="button button-primary">Conheça a fundação <span aria-hidden="true">→</span></NuxtLink>
+      <NuxtLink to="/foundation" class="button button-primary">Conheça a fundação <span aria-hidden="true">→</span></NuxtLink>
       <p class="hero-footnote">Estamos construindo o Pagino. Cadastros e publicação ainda não estão disponíveis.</p>
     </div>
     <div class="story-card" aria-label="Princípios do Pagino">
