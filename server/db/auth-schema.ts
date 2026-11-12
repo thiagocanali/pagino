@@ -1,5 +1,5 @@
-import { relations } from "drizzle-orm";
-import { pgSchema, text, timestamp, boolean, index, integer, bigint } from "drizzle-orm/pg-core";
+import { relations, sql } from "drizzle-orm";
+import { pgSchema, text, timestamp, boolean, index, integer, bigint, uuid, check } from "drizzle-orm/pg-core";
 
 // Generated with auth@1.7.20; namespaced for Pagino. Do not use Supabase managed auth schema.
 export const paginoAuth = pgSchema("pagino_auth");
@@ -103,3 +103,21 @@ export const rateLimit = pgTable("rate_limit", {
   count: integer("count").notNull(),
   lastRequest: bigint("last_request", { mode: "number" }).notNull(),
 });
+
+export const emailChallenges = pgTable("email_challenges", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: 'cascade' }),
+  recipient: text("recipient").notNull(),
+  purpose: text("purpose").notNull(),
+  tokenHash: text("token_hash").notNull().unique(),
+  nativeToken: text("native_token").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+  deliveryStatus: text("delivery_status").notNull().default('pending'),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, t => [
+  check('email_challenge_purpose', sql`${t.purpose} in ('reset', 'verify')`),
+  check('email_challenge_delivery', sql`${t.deliveryStatus} in ('pending','sent','failed')`),
+  index('email_challenge_expiry').on(t.expiresAt),
+  index('email_challenge_user_purpose').on(t.userId, t.purpose, t.usedAt),
+]);
