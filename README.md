@@ -94,4 +94,4 @@ npm run test:auth:e2e
 
 `test:auth:e2e` cria PostgreSQL descartável com senha aleatória, aplica migrations, provisiona fixtures sintéticas verificadas, inicia o build Node com roles restritas, testa no navegador e encerra servidor/container. Não configura um ambiente comercial nem fornece contas reais. Na cloud atual, Chromium existente pode ser indicado por PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH.
 
-Estado de integração em 12/11/2026: PRs #1/#2/#3 integradas; #4 entrou na branch da TASK 02 e segue para main pela continuação #5. O incremento 04 de acesso está em branch própria para revisão. O bloqueio de deploy automático está na main desde a PR #2.
+Estado de integração em 12/11/2026: PRs #1/#2/#3 integradas; a persistência da #4 chegou à main pela continuação #5, após CI aprovada. O incremento 04 de acesso está em branch própria para revisão. O bloqueio de deploy automático está na main desde a PR #2.

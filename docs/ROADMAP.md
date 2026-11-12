@@ -63,6 +63,6 @@ Primeiro incremento da TASK 04 implementa login/logout, sessão, matriz de permi
 
 ## Estado em 12/11/2026
 
-PRs #1 e #2 integradas na main; #3 já integrada. #4 foi integrada em feat/task-02-fundacao-tecnica depois do fechamento da #3. A continuação #5 leva a mesma árvore de persistência para main; aguardar sua CI e integração antes de afirmar que o núcleo 03 está na branch principal.
+PRs #1 e #2 integradas na main; #3 já integrada. #4 foi integrada em feat/task-02-fundacao-tecnica depois do fechamento da #3. A continuação #5 passou na CI (run 43204551451) e integrou a mesma árvore de persistência na main (merge 2d2ac27). O núcleo 03 está na branch principal.
 
 Incremento 04 preparado com sessões, login/logout, roles, workspace institucional somente de leitura e rate limiting atômico. Validação local: 34 unitários, 25 integrações Postgres e 18 testes de navegador (10 da fundação/sem configuração, 8 com autenticação e banco). Sem projeto Supabase novo, sem migration em banco existente e sem deploy. Próximo incremento da fase 04: recuperação/verificação, convites e provisionamento operacional, começando por transporte local testável e mantendo autorização de serviço real antes do piloto.

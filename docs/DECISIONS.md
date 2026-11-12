@@ -82,3 +82,5 @@ PRs #2 e #1 integradas após confirmação explícita em chat. Merge da #3 foi r
 Confirmação posterior do proprietário autoriza continuidade das integrações #3/#4. A #3 já estava na main; #4 havia sido integrada na branch da TASK 02 depois disso. Criada PR #5 para concluir a integração da mesma árvore na main sem recriar código ou force push.
 
 O cliente Vue deste incremento usa fetch/DTO próprios para expor apenas id/nome/e-mail; não usa o cliente Better Auth para buscar o objeto bruto de sessão. A identidade, assinatura/validação de cookies e sessões continuam integralmente no Better Auth.
+
+A continuação #5 foi integrada em 12/11/2026 após CI aprovada (run 43204551451); merge 2d2ac27 na main, árvore 278348c279831a775d77376d070148a26953e81a idêntica à persistência validada.
