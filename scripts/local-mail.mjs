@@ -1,12 +1,14 @@
 import { createServer } from 'node:http'
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { resolve, join } from 'node:path'
 
 const directory = resolve(process.env.PAGINO_LOCAL_MAIL_DIR || '.local-mail')
 const port = Number(process.env.PAGINO_LOCAL_MAIL_PORT || 3025)
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Invalid local port')
 await mkdir(join(directory, 'messages'), { recursive: true, mode: 0o700 })
+await chmod(directory, 0o700)
+await chmod(join(directory, 'messages'), 0o700)
 const configFile = join(directory, 'collector.env')
 const previous = await readFile(configFile, 'utf8').catch(() => '')
 const secret = previous.match(/^NUXT_AUTH_MAIL_SECRET=([a-f0-9]{64})$/m)?.[1] || randomBytes(32).toString('hex')
@@ -32,6 +34,7 @@ const server = createServer(async (request, response) => {
 })
 await new Promise(resolve => server.listen(port, '127.0.0.1', resolve))
 await writeFile(configFile, `NUXT_AUTH_MAIL_URL=http://127.0.0.1:${port}/messages\nNUXT_AUTH_MAIL_SECRET=${secret}\n`, { mode: 0o600 })
+await chmod(configFile, 0o600)
 console.log('Coletor local ativo em loopback. Configuração privada em .local-mail/collector.env; mensagens no diretório privado messages. Nenhum e-mail externo será enviado.')
 process.on('SIGTERM', () => server.close(() => process.exit(0)))
 process.on('SIGINT', () => server.close(() => process.exit(0)))
