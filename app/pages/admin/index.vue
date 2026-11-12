@@ -1,25 +1,16 @@
 <script setup lang="ts">
-import type { HealthResponse } from '#shared/types/api'
-definePageMeta({ layout: 'admin' })
-useSeoMeta({ title: 'Fundação técnica — Pagino', robots: 'noindex, nofollow' })
-const { data, status, error, refresh } = await useFetch<HealthResponse>('/api/health', { key: 'foundation-health' })
+import type { InstitutionSummary } from '#shared/types/api'
+definePageMeta({ layout: 'workspace', middleware: ['authenticated'] })
+useSeoMeta({ title: 'Suas instituições — Pagino', robots: 'noindex, nofollow' })
+const { data, status, error, refresh } = await useFetch<InstitutionSummary[]>('/api/me/institutions')
+const roleNames = { owner: 'Responsável', admin: 'Administrador', editor: 'Editor', viewer: 'Leitor' }
 </script>
 
 <template>
-  <div>
-  <div class="page-intro"><p class="eyebrow">BEM-VINDO AO PAGINO</p><h1>Uma boa história<br>começa pela base.</h1><p>A fundação técnica está tomando forma. Aqui você acompanha o que já pode ser verificado de verdade.</p></div>
-  <div class="overview-grid">
-    <section class="panel health-panel" aria-labelledby="health-heading">
-      <div class="panel-heading"><span class="panel-icon" aria-hidden="true">⌁</span><StatusBadge v-if="data && !error" tone="success" label="Respondendo" /><StatusBadge v-else label="Verificação pendente" /></div>
-      <h2 id="health-heading">Conexão com o backend</h2>
-      <p v-if="status === 'pending'" role="status">Verificando a resposta do servidor…</p>
-      <p v-else-if="error" role="alert">Não foi possível verificar o servidor. Tente novamente.</p>
-      <p v-else>O Nitro respondeu à verificação de saúde. Esta consulta não acessa banco de dados ou autenticação.</p>
-      <div class="endpoint-line"><code>GET /api/health</code><span v-if="data && !error">{{ data.status }}</span></div>
-      <button class="text-button" :disabled="status === 'pending'" @click="refresh()">{{ status === 'pending' ? 'Verificando…' : 'Verificar novamente' }} <span aria-hidden="true">↻</span></button>
-    </section>
-    <section class="panel next-panel" aria-labelledby="next-heading"><span class="eyebrow">PRÓXIMO PASSO</span><h2 id="next-heading">Um espaço para<br>cada instituição.</h2><p>Persistência e isolamento entre instituições serão conectados antes de disponibilizar dados ou gestão de acesso.</p><div class="inline-note">Nenhum banco conectado nesta etapa.</div></section>
-  </div>
-  <section class="panel setup-callout"><div><p class="eyebrow">CONTRATOS CLAROS DESDE O INÍCIO</p><h2>Experimente a validação de configuração.</h2><p>Confira as regras de nome e endereço. A validação é real; ela não cria uma instituição nem salva dados.</p></div><NuxtLink to="/admin/configuracao" class="button button-dark">Validar configuração <span aria-hidden="true">→</span></NuxtLink></section>
-  </div>
+  <section><div class="page-intro"><p class="eyebrow">SEU ESPAÇO DE TRABALHO</p><h1>Suas instituições.</h1><p>Escolha a instituição que você quer acompanhar. Seu acesso e suas permissões são verificados no servidor.</p></div>
+    <p v-if="status === 'pending'" role="status">Carregando instituições…</p>
+    <div v-else-if="error" role="alert" class="panel"><p>Não foi possível carregar suas instituições.</p><button class="text-button" @click="refresh()">Tentar novamente</button></div>
+    <div v-else-if="!data?.length" class="panel"><h2>Nenhuma instituição disponível.</h2><p>Você ainda não tem vínculo ativo com uma instituição. Procure o responsável pela sua equipe.</p></div>
+    <div v-else class="institution-grid"><NuxtLink v-for="institution in data" :key="institution.id" :to="`/admin/instituicoes/${institution.id}`" class="panel institution-card"><StatusBadge :label="roleNames[institution.role]" /><h2>{{ institution.name }}</h2><p>Abrir instituição <span aria-hidden="true">→</span></p></NuxtLink></div>
+  </section>
 </template>

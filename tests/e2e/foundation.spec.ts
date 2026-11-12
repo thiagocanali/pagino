@@ -5,6 +5,7 @@ test('public and admin layouts render, navigate and fit the viewport', async ({ 
   page.on('pageerror', error => errors.push(error.message))
   await page.goto('/')
   await expect(page.getByRole('heading', { name: /Sua instituição/ })).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await expect(page.getByText(/Cadastros e publicação ainda não estão disponíveis/)).toBeVisible()
   await page.getByRole('link', { name: /Conheça a fundação/ }).click()
   await expect(page.getByRole('heading', { name: 'Conexão com o backend' })).toBeVisible()
@@ -16,7 +17,7 @@ test('public and admin layouts render, navigate and fit the viewport', async ({ 
 })
 
 test('validation shows accessible errors and confirms stateless server result', async ({ page }) => {
-  await page.goto('/admin/configuracao')
+  await page.goto('/foundation/configuracao')
   await page.getByRole('button', { name: 'Validar campos' }).click()
   await expect(page.getByLabel('Nome da instituição')).toBeFocused()
   await expect(page.getByText('Informe um nome com pelo menos 2 caracteres.')).toBeVisible()
@@ -61,4 +62,14 @@ test('unknown pages use a safe recovery screen', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Esta página não foi encontrada.' })).toBeVisible()
   await page.getByRole('button', { name: /Voltar ao início/ }).click()
   await expect(page.getByRole('heading', { name: /Sua instituição/ })).toBeVisible()
+})
+
+test('authentication stays closed when private configuration is absent', async ({ page }) => {
+  await page.goto('/admin')
+  await expect(page).toHaveURL(/\/auth\/login$/)
+  await page.getByLabel('E-mail').fill('person@example.test')
+  await page.getByLabel('Senha', { exact: true }).fill('synthetic-test-password')
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+  await expect(page.getByRole('alert')).toContainText('ainda não está conectado')
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
 })

@@ -20,7 +20,8 @@
     "test:e2e": "playwright test",
     "check": "npm run lint && npm run typecheck && npm test",
     "test:db": "node scripts/test-database.mjs",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "test:auth:e2e": "node scripts/test-database.mjs --browser"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "1.7.20",
