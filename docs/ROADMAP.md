@@ -1,68 +1,49 @@
 # Roadmap de implementação
 
-Status: planejamento detalhado da TASK 01, atualizado pela missão posterior de implementação autônoma. P0 é dependência fundacional/segurança; P1 completa o MVP. Cada tarefa futura entrega comportamento demonstrável e testes, não apenas camada isolada. Trabalhar com fixtures sintéticas e PostgreSQL local até haver autorização remota. Uma PR por incremento, dividindo novamente se ficar grande.
+Estado em 12/11/2026. A numeração vigente segue as fases solicitadas pelo proprietário. P0 indica fundação/segurança ou gate de liberação; P1 indica incremento de produto. Cada linha futura deve resultar em comportamento demonstrável, validação e PR revisável.
 
-| Task / prioridade | Incremento funcional e aceite demonstrável | Dependências | Risco e testes necessários |
+## Entregue e validado
+
+| Fase | Estado e evidência |
+| --- | --- |
+| TASK 01 — Fundação documental | 13 documentos, decisões, requisitos e critérios de aceite; PR #1 integrada |
+| TASK 02 — Fundação técnica | Nuxt/Vue/TypeScript/Nitro, layouts, validação, erros, CI; PR #3 integrada |
+| TASK 03 — Persistência/multi-tenancy | Núcleo institutions/memberships/sites/pages/audit, schema Better Auth, FKs compostas, roles restritas e FORCE RLS; #4 entrou na branch 02 e #5 concluiu integração na main |
+| TASK 04 — Autenticação/permissões | Primeiro incremento integrado na PR #6: login/logout, sessão verificada no servidor, limite persistente atômico, seleção de instituição e leitura autorizada; fase ainda incompleta |
+
+A base 03 implementa o núcleo, não todas as entidades futuras do CMS. Novos módulos acrescentarão migrations próprias. Escrita de auditoria e testes negativos de isolamento acompanham cada mutação desde a primeira implementação; não serão adiados para a fase 08.
+
+CI da persistência: run 43204551451, aprovado. CI do acesso: run 43205402954, aprovado — 34 unitários, 25 integrações PG e 18 E2E, lint/tipos e builds Node/Vercel. Fixtures são sintéticas e bancos descartáveis; integração remota não está comprovada. Deploy Git bloqueado pela PR #2; a aplicação não foi publicada.
+
+## Próximos incrementos
+
+| ID / prioridade | Incremento funcional e aceite | Dependências | Riscos e testes |
 | --- | --- | --- | --- |
-| **02 / P0** | **Bootstrap técnico local e CI de qualidade**: Nuxt/Vue/TS/Nitro, tela técnica responsiva e health sem segredos; lockfile, scripts de lint/tipos/Vitest/Playwright/build e Actions em PR; build Vercel sem deploy | Revisão da 01 | Compatibilidade Node/Nuxt/Nitro: fixar versões estáveis, avaliar Node 24 LTS frente a 26.x observado; fresh install, smoke navegador e build |
-| 03 / P0 | Prova local da stack de dados/auth: Better Auth + adapter Drizzle/PG em banco descartável, login/logout de usuário sintético e recurso protegido por tenant seed; roles auth/domínio/leitor e pool transacional comprovados | 02 | Não tratar como auth final; cookies SSR, schema gerado, ausência de contexto/RLS, rollback e reuso concorrente; decidir ADR se composição falhar |
-| 04 / P0 | Acesso seguro: verificação, convite inicial de owner provisionado, recuperação, expiração/revogação, rate limiting persistente e coletor de e-mail local | 03 | Token/replay/enumeração; testar fluxo completo, expiração e revogação; produção depende de e-mail real autorizado |
-| 05 / P0 | Instituições: provisionamento assistido idempotente, seleção no painel e estados vazios; suspender bloqueia acesso/site | 04 | Isolamento: duas instituições e memberships distintas, 401/403/404, slug único, criação/rollback/auditoria |
-| 06 / P0 | Equipe e RBAC: convite editor/viewer/admin conforme matriz, aceite/reenvio/revogação e transferência de owner | 05 | Escalada e último owner: matriz completa, aceite concorrente, duas remoções simultâneas, revogação imediata |
-| 07 / P1 | Template e marca: institutional-classic@1 com configurações persistidas e preview privado | 05 | JSON inválido, contraste, XSS, vazamento por preview; teclado/responsividade, dois tenants independentes |
-| 08 / P1 | Páginas e navegação: criar/editar/arquivar, SEO básico e preview; conflitos preservam trabalho | 07 | Slugs/rotas reservadas, sanitização, optimistic locking e referências de mídia preparadas |
-| 09 / P1 | Eventos informativos no painel e preview: lista/detalhe, timezone e arquivo | 08 | Fim/início e DST, validações, paginação e tenant A/B |
-| 10 / P0 | Mídias: upload direto assinado, validação/derivado seguro, alt, quota, seleção e exclusão protegida; reconciliação manual idempotente | 06, 08, 09; Storage autorizado para prova remota | MIME falso, EXIF, dimensão, quota concorrente, cross-tenant, falhas DB/Storage e referências; local fake só auxilia, não encerra verificação Storage |
-| 11 / P0 | Publicação: snapshot completo e rota pública /s/{slug}, checklist, retirada e restauração em rascunho | 06–10 | Atomicidade, idempotência, leitura só snapshot ativo, corrida edição/publicação, cache no-store e mídia privada; E2E editor → admin → visitante |
-| 12 / P1 | Consulta de auditoria com filtros/paginação e linguagem compreensível | 06, 11 | Isolamento, permissões, redação e imutabilidade; auditoria de escrita já obrigatória desde a 03, não adiada para cá |
-| 13 / P0 | Homologação integrada em preview do projeto existente: sessão/e-mail reais, DB/Storage dedicados, health e diagnóstico sem dados sensíveis | 02–12; gates de recursos abaixo | Smoke browser → API → DB → Storage; proteção Vercel, alias, cookies HTTPS, pooling real e isolamento; nenhum dado de produção |
-| 14 / P0 | Piloto operacional: backup/restauração comprovados, acessibilidade/usabilidade revisadas, publicação pública autorizada e runbook de incidente | 13; revisão humana | Custo/limites/plano comercial, métricas RNF, LGPD, recuperação, retirada e rollback; produção somente com gates atendidos |
+| **04-B / P0** | **Recuperação e verificação de e-mail**: solicitação genérica, mensagem capturada em transporte local real, link de uso único, nova senha/verificação, revogação das sessões antigas | 04-A entregue | Expiração/replay, enumeração, origem, token fora de logs, senha com espaços, fluxo navegador → transporte → DB. Produção depende de envio real autorizado |
+| 04-C / P0 | Provisionamento assistido de instituição/site/primeiro owner e convite vinculado ao destinatário; retry sem duplicar | 04-B | Comando operacional restrito, auditoria, idempotência, e-mail correto, falha de entrega recuperável; nenhum superadmin público |
+| 04-D / P0 | Equipe: convidar, aceitar, reenviar, revogar e transferir ownership conforme matriz | 04-C | Papéis por tenant, admin sem promoção de owner, duas remoções simultâneas não eliminam último owner, reautenticação e convites expirados/reutilizados |
+| 05-A / P1 | Gestão institucional e configurações persistidas no painel; estados vazio/erro/sucesso; suspensão operacional bloqueia painel/público | 04-C, 04-D | Validação de servidor, conflitos, auditoria e isolamento A/B em chamadas diretas |
+| 05-B / P1 | Gestão de equipe no painel com ações reais e mensagens compreensíveis | 04-D | Botões por permissão, backend independente da UI, revogação imediata, acessibilidade por teclado |
+| 06-A / P1 | institutional-classic@1 com tokens de marca, tipografia de catálogo e preview privado, sem depender de imagem ainda indisponível | 05-A | Schema inválido/versionado, contraste, responsividade, XSS e independência entre tenants |
+| 07-A / P1 | CMS de páginas/navegação/SEO: criar, editar, arquivar, salvar rascunho e preview | 06-A | Rotas reservadas, slug único, sanitização, optimistic locking, conflito sem perda silenciosa e auditoria |
+| 07-B / P1 | Eventos informativos persistidos, listagem/detalhe e arquivo | 07-A | UTC + timezone IANA, DST, fim/início, paginação, isolamento e rascunho sem alteração pública |
+| 07-C / P0 | Biblioteca de mídias e integração de logo/imagens: upload assinado, derivado seguro, alt, quota e exclusão protegida | 05-B, 07-A; Storage autorizado para prova remota | MIME/bytes/dimensões/EXIF, quota concorrente, path cruzado, falha DB/Storage, órfãos e referências. Fake não encerra validação Storage |
+| 07-D / P0 | Publicação por snapshot completo em /s/{slug}, checklist, retirada e restauração para rascunho | 07-A–C | Atomicidade, idempotência, corrida com edição, público sem drafts, no-store, links de mídia com TTL e versão anterior preservada |
+| 08-A / P1 | Interface de auditoria com filtros/paginação e autoria compreensível | 05–07; escrita já implementada em cada módulo | Roles owner/admin, redação, append-only, isolamento e paginação estável |
+| 08-B / P0 | Homologação integrada em preview autorizado do projeto existente | 04–07; gates abaixo | Cookies HTTPS, IP/proxy, Supavisor, e-mail e Storage reais; navegador → API → dados; proteção Vercel e alias confirmados |
+| 08-C / P0 | Piloto operacional e publicação autorizada: restauração ensaiada, acessibilidade/usabilidade, métricas e runbook | 08-A/B; revisão humana | Backup de banco **e objetos**, RPO/RTO, custos/plano, LGPD, isolamento completo, retirada/rollback e instituição piloto real |
 
-## Gates externos e paralelismo seguro
+## Gates externos
 
-- Antes de usar cloud: identificar projeto Supabase específico; se não existir, pedir autorização explícita com nome/região/ambientes/custo. Não reutilizar projetos de outros produtos.
-- E-mail: selecionar serviço e validar custo/domínio/entregabilidade antes de ativar convites/reset em produção. Coletor local não substitui envio real.
-- Preview: reutilizar projeto Vercel pagino; confirmar vínculo Git/alias paginoo.vercel.app, runtime e proteção SSO. Segredos somente em ambientes autorizados e nunca em PR de fork. Não remover proteção nem criar projeto para contornar bloqueio.
-- Confirmar elegibilidade do plano Vercel para uso comercial; se houver necessidade de plano pago, apresentar decisão ao proprietário. Nada contratado por este roadmap.
-- Contratos e RLS da 03 devem ser aprovados antes de desenvolver módulos. 06 e 07 podem avançar separadamente após 05, mantendo contratos comuns; não é instrução para criar subagentes.
+- Identificar Supabase específico; se inexistente, preparar proposta de nome/região/ambientes/custo e pedir autorização antes de criar. Não usar bancos de outros produtos.
+- Selecionar transporte de e-mail e validar remetente/domínio, custo e entregabilidade antes do piloto. Coletor local comprova o fluxo de desenvolvimento, não entrega comercial.
+- Reutilizar Vercel pagino. Confirmar alias inicial, runtime, proteção e acesso de visitante. Não alterar segurança ou criar projeto para contornar bloqueios.
+- Confirmar elegibilidade comercial do plano e capacidade de backups/Storage; serviço pago exige autorização.
+- Revisar dependências, TLS, proxy/IP confiável, limite upstream de corpo, retenção, termos/LGPD e recuperação antes de dados reais.
+- Produção continua sem autorização; build/merge não devem disparar deploy automático. Previews usam recursos isolados, nunca credenciais de produção ou de outros projetos.
 
-## TASK 02 em detalhe
+## Regras de execução
 
-**Objetivo:** repositório executável localmente e verificação automática reproduzível, sem funcionalidades institucionais ou recursos remotos.
+Uma branch/PR por incremento, commits descritivos, checks apropriados e revisão antes do merge. Sem force push ou migrations em build/preview. Testar em Postgres real descartável; mocks não comprovam RLS, pooling ou Storage. Preservar identidade única Better Auth, contexto de tenant por requisição/transação e snapshot público separado do rascunho.
 
-Entregáveis: scaffold Nuxt estável com Vue 3/TypeScript/Nitro; Node e gerenciador fixados; lockfile; página técnica acessível; GET health sem consultar serviços; teste unitário significativo de contrato health e smoke Playwright da página; lint/tipos/build; Actions com permissões mínimas, sem deploy/migration e sem secrets; README com comandos reais.
-
-Aceite: clone limpo instala por lockfile, executa checks e build Nitro/Vercel, inicia localmente e passa smoke no navegador. CI de PR reproduz verificações. Versões/runtime resolvidos e registrados em ADR. Não criar Supabase, configurar cobrança, alterar Vercel ou implementar login nesta task.
-
-## Riscos de sequência
-
-A 03 é um gate de compatibilidade, não uma promessa de integração pronta. Se adapter/roles/pool não compuserem corretamente, resolver com ADR antes de dados reais. Storage privilegiado e links temporários exigem verificação específica; não assumir que RLS do domínio protege Storage. Operação comercial, backup e LGPD não podem ser adiados para depois do primeiro cliente.
-
-## Agrupamento vigente solicitado pelo proprietário
-
-A missão posterior mantém os incrementos pequenos da tabela, agrupados por fases: TASK 02 = bootstrap/layouts/componentes/validação/erros/CI; TASK 03 = persistência e multi-tenancy (inclui prova local da stack e RLS); TASK 04 = autenticação/permissões; TASK 05 = painel; TASK 06 = templates; TASK 07 = CMS/eventos/mídia/publicação; TASK 08 = qualidade/piloto. Números 04–14 da tabela anterior passam a ser IDs históricos de incrementos, não substituem os novos nomes de fase. Implementar auditoria de escrita desde a primeira mutação, embora sua interface e validação completa pertençam à fase 08. Dependências de auth devem ser resolvidas antes de expor dados do painel.
-
-O limite inicial de revisão automática foi resolvido no mesmo fluxo; documentação publicada na PR #1. Merge da PR #2 foi rejeitado pela revisão automática por aplicar a proibição inicial de merge. Aguardar autorização explícita em chat, sem contornar o controle. Recursos Supabase e e-mail continuam pendentes.
-
-## Progresso verificado nesta sessão
-
-- TASK 01: 13 documentos publicados na PR #1; merge ainda pendente.
-- Guard de deploy: PR #2 bloqueia deploys automáticos Git, validado contra schema oficial. Merge bloqueado pela revisão automática; autorização específica solicitada.
-- TASK 02: incremento funcional local validado (21 testes unitários, 8 E2E desktop/mobile, lint, tipos e builds Node/Vercel); publicado em branch própria. Não há autenticação nem instituição conectada à UI.
-- TASK 03, incremento inicial: núcleo persistente com instituições/memberships/sites/páginas/auditoria; schema oficial Better Auth em pagino_auth, FKs compostas, roles restritas, RLS e contexto transacional. 14 testes de integração em PG 17.11 descartável aprovados. Login do adapter validado apenas como prova técnica, sem expor rota/UI de auth.
-- Próximo incremento: TASK 04, login/logout/sessões e vínculo seguro do contexto de tenant ao usuário autenticado, seguido de verificação, recuperação e convites. Antes de integração remota: autorização de Supabase específico e serviço de e-mail. Demais modelos do CMS/publicação serão migrations incrementais das respectivas fases.
-- Nenhum merge ou deploy manual executado; nenhuma aplicação Nuxt publicada. A Vercel gerou automaticamente produção do README-base (016a50f, antes da nova missão) e preview de documentação (e39e9eb). Nenhum projeto Supabase/serviço pago criado nem banco existente alterado.
-
-CI remota da TASK 02 aprovada: https://github.com/thiagocanali/pagino/actions/runs/43067857515 (commit 5d8c99f). PRs abertas: #1 documentação, #2 bloqueio de deploy Git e #3 fundação técnica. Merge da #2 rejeitado por controle automático; pedido de autorização explícita em chat permanece pendente.
-
-## Atualização após confirmação em chat e início da TASK 04
-
-PRs #2 (bloqueio de deploy Git) e #1 (documentação) integradas. #3 e #4 seguem abertas: revisão automática rejeitou o merge da #3 por entender que a confirmação cobria somente #2/#1; aprovação específica solicitada.
-
-Primeiro incremento da TASK 04 implementa login/logout, sessão, matriz de permissões, seleção de instituição e leitura autorizada de rascunhos. Faltam recuperação, convites, envio/verificação de e-mail e provisionamento operacional; não considerar a fase completa. A próxima entrega deve ligar esses fluxos com coletor local verificável, mantendo gate de transporte real antes de produção.
-
-## Estado em 12/11/2026
-
-PRs #1 e #2 integradas na main; #3 já integrada. #4 foi integrada em feat/task-02-fundacao-tecnica depois do fechamento da #3. A continuação #5 passou na CI (run 43204551451) e integrou a mesma árvore de persistência na main (merge 2d2ac27). O núcleo 03 está na branch principal.
-
-Incremento 04 preparado com sessões, login/logout, roles, workspace institucional somente de leitura e rate limiting atômico. Validação local: 34 unitários, 25 integrações Postgres e 18 testes de navegador (10 da fundação/sem configuração, 8 com autenticação e banco). Sem projeto Supabase novo, sem migration em banco existente e sem deploy. Próximo incremento da fase 04: recuperação/verificação, convites e provisionamento operacional, começando por transporte local testável e mantendo autorização de serviço real antes do piloto.
+Se um gate externo bloquear um incremento, documentar a ação necessária e executar trabalho independente. Não declarar a fase ou o MVP concluído apenas porque o scaffold ou a CI passaram. O histórico da sequência inicial e das integrações está no Git e em DECISIONS.md.

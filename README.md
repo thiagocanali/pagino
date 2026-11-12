@@ -2,96 +2,80 @@
 
 Seu site. Seu jeito. Seu controle.
 
-SaaS multi-tenant para igrejas, ONGs, associações e pequenas empresas criarem e administrarem sites institucionais com templates configuráveis, sem depender de programadores. Primeiro template: `institutional-classic`.
+SaaS multi-tenant para igrejas, ONGs, associações e pequenas empresas criarem e administrarem sites institucionais com templates configuráveis. Primeiro template previsto: `institutional-classic`.
 
-## Execução local — TASK 02
+## Estado atual — 12/11/2026
 
-Requer Node 24.22.1 e npm 11.9.0. Não requer banco ou credenciais nesta fase.
+A `main` contém a fundação documental, Nuxt/Vue/TypeScript/Nitro, núcleo PostgreSQL/Drizzle com isolamento RLS e o primeiro incremento de autenticação Better Auth. A PR [#5](https://github.com/thiagocanali/pagino/pull/5) concluiu a integração da persistência; a PR [#6](https://github.com/thiagocanali/pagino/pull/6) integrou login, sessões e acesso institucional após CI aprovada.
+
+Implementado: login de conta previamente verificada, logout com revogação no banco, sessão consultada no servidor, papéis por instituição, seleção de instituições e leitura autorizada de rascunhos. Sem configuração privada válida, o acesso administrativo fica fechado com 503. Sem cadastro público, recuperação, convites ou publicação de sites nesta etapa.
+
+A TASK 04 permanece em andamento. Próximo incremento: recuperação/verificação de e-mail, seguido de provisionamento assistido e convites. [Roadmap](docs/ROADMAP.md).
+
+## Executar localmente
+
+Requer Node 24.22.1 e npm 11.9.0.
 
 ```sh
 npm ci
 npm run dev
 ```
 
-Rotas técnicas: `/` (layout público), `/foundation` e `/foundation/configuracao` (fundação/validação sem persistência), `GET /api/health` e `POST /api/setup/validate`. O caminho `/admin` passou a exigir sessão na TASK 04.
+Sem banco ou credenciais, `/`, `/foundation`, `/foundation/configuracao` e `GET /api/health` funcionam. O formulário técnico apenas valida campos; não cadastra instituição nem salva dados. `/auth/login` e `/admin` exigem configuração de acesso para autenticar.
+
+Para usar banco autorizado, copie `.env.example` para `.env.local`, preencha as variáveis privadas e execute:
+
+```sh
+npm run dev -- --dotenv .env.local
+```
+
+As conexões exigem as roles restritas `auth_runtime` e `app_runtime`; nunca use `postgres`, owner ou BYPASSRLS. `NUXT_AUTH_BASE_URL` deve ser uma origem exata, sem caminho/barra final; HTTPS obrigatório fora de loopback. O servidor Node do build recebe variáveis pelo processo e não carrega `.env.local` automaticamente. Não compartilhe segredos em chat ou Git.
+
+## Verificação reproduzível
+
+Testes de integração requerem Docker Linux no socket local. Testes de navegador requerem Chromium/Playwright.
 
 ```sh
 npm run check
-npm run build
-npx playwright install chromium
-npm run test:e2e
-npm run build:vercel
-```
-
-Em ambiente com Chromium já instalado, usar `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/caminho/do/chromium npm run test:e2e`. Playwright inicia e encerra o servidor do build Node. `build:vercel` apenas compila artefatos locais; não faz deploy. A CI da TASK 02 foi executada com sucesso no GitHub (run 43067857515). Verificação da TASK 03 será registrada na PR correspondente.
-
-Organização: `app/` para layouts/páginas/componentes; `server/` para Nitro; `shared/` para schemas/tipos; `tests/unit` e `tests/e2e`. Formulário usa Zod compartilhado, confirma validação real do backend e não promete cadastro, disponibilidade de slug ou salvamento. Interfaces administrativas desta fase não expõem recursos institucionais; autorização deve ser implementada antes de conectá-los.
-
-## Diagnóstico inicial — TASK 01
-
-Fundação documental em 11/11/2026. A especificação da TASK 01 não implementa funcionalidades; a execução posterior passa a desenvolver o código em branches próprias. As decisões são propostas para revisão nesta PR; suporte documentado não equivale a integração testada. Não há comando de instalação ou execução nesta etapa.
-
-Diagnóstico por consultas somente leitura:
-
-- GitHub `thiagocanali/pagino`: público, vazio, sem branches antes desta tarefa; default declarado `main`. Criado apenas README inicial na `main` para permitir branch e PR, pois GitHub não abre PR contra uma história inexistente.
-- Vercel: projeto existente `pagino`, sem deployments; framework não definido e Node configurado em `26.x`. Nenhuma configuração alterada. A documentação de produto recomenda avaliar Node 24 LTS na TASK 02, em vez de assumir compatibilidade da configuração atual.
-- `https://paginoo.vercel.app/`: endereço inicial informado pelo proprietário; vínculo do alias não confirmado pela resposta consultada (lista de domínios vazia). Confirmar antes do primeiro deploy. Proteção SSO observada no projeto pode impedir acesso público: validar na tarefa de publicação sem contratar plano.
-- Supabase: nenhum projeto listado foi identificado como Pagino. Projetos de outros produtos não foram inspecionados nem alterados. A implementação remota aguarda identificação/autorização de recurso dedicado.
-
-## Mapa da documentação
-
-| Documento | Finalidade |
-| --- | --- |
-| [AGENTS.md](AGENTS.md) | Regras de contribuição e segurança |
-| [Visão](docs/PRODUCT_VISION.md) | Público, problema, valor e objetivos comerciais |
-| [PRD](docs/PRD.md) | Requisitos, fluxos e critérios de aceite |
-| [Escopo](docs/MVP_SCOPE.md) | Limites e definição de pronto do MVP |
-| [Arquitetura](docs/ARCHITECTURE.md) | Stack, compatibilidade e fronteiras de confiança |
-| [Modelo de dados](docs/DATA_MODEL.md) | Entidades, relações e invariantes |
-| [Permissões](docs/PERMISSIONS.md) | Papéis e autorização por instituição |
-| [Templates](docs/TEMPLATE_SYSTEM.md) | Contrato do primeiro template |
-| [Segurança](docs/SECURITY.md) | Ameaças, controles e operação |
-| [Roadmap](docs/ROADMAP.md) | Incrementos ordenados, dependências e testes |
-| [Decisões](docs/DECISIONS.md) | ADRs, justificativas e pendências |
-| [Testes](docs/TESTING.md) | Estratégia de verificação e evidências |
-
-## Próximo incremento
-
-**TASK 02 — Bootstrap técnico local e CI de qualidade.** Criar Nuxt/Vue/TypeScript/Nitro com versões estáveis fixadas, página técnica acessível, endpoint de saúde sem dados sensíveis, Vitest, Playwright e GitHub Actions. Validar build para Vercel sem deploy e sem banco remoto. Ver [roadmap](docs/ROADMAP.md).
-
-Desenvolvimento futuro usa branches e PRs revisadas. Merges são autorizados após validação e checks obrigatórios aprovados. Nenhum projeto/serviço pago deve ser criado implicitamente; nenhum deploy em produção está autorizado.
-
-## Persistência local — incremento inicial da TASK 03
-
-```sh
 npm run test:db
-npm run db:generate
-```
-
-O primeiro comando requer Docker Linux no socket local: cria e remove PostgreSQL descartável com senha aleatória e dados sintéticos; não usa banco existente. O segundo gera migrations offline, sem executar SQL. Não há comando de migration remota ou deploy configurado.
-
-`server/db/` contém núcleo de tenant e identidade gerada oficialmente; `migrations/` contém DDL e policies; `tests/integration/` verifica segurança com roles restritas reais. Na entrega inicial da TASK 03, a UI ainda não usava o banco; o incremento 04 abaixo conecta leituras com sessão e autorização. O contexto de tenant só poderá vir de sessão validada no servidor, nunca de payload do navegador.
-
-## Deployments observados após os pushes
-
-A integração Vercel criou automaticamente um deployment de produção do README inicial (commit 016a50f, antes da nova missão) e um preview da documentação (e39e9eb). Não houve deploy manual nem publicação da aplicação Nuxt. vercel.json nas branches de código bloqueia novos deploys Git; a proteção da main depende do merge da PR #2, cuja autorização específica está pendente.
-
-## TASK 04 — primeiro incremento de acesso
-
-Login em `/auth/login`, sessão verificada no servidor, seleção de instituições em `/admin` e consulta de rascunhos em `/admin/instituicoes/{id}`. APIs validam a sessão e membership em cada operação; papel muda por instituição. Não há cadastro público, recuperação, convites ou operação de criação de instituição neste incremento. Contas não verificadas não entram.
-
-Configuração privada: copie `.env.example` para `.env.local`, preencha apenas credenciais de ambiente autorizado e execute `npm run dev -- --dotenv .env.local`. Nunca use URL de postgres/admin/owner; as conexões exigem auth_runtime e app_runtime sem privilégios de bypass. Em build Node, injete as variáveis no processo; o servidor não carrega `.env.local` automaticamente. Sem configuração, login/APIs administrativas retornam 503 e dados permanecem indisponíveis. Health e `/foundation` continuam sem banco.
-
-Para provar o fluxo inteiro sem criar recurso remoto:
-
-```sh
 npm run build
-npm run test:db
 npx playwright install chromium
 npm run test:e2e
 npm run test:auth:e2e
+npm run build:vercel
 ```
 
-`test:auth:e2e` cria PostgreSQL descartável com senha aleatória, aplica migrations, provisiona fixtures sintéticas verificadas, inicia o build Node com roles restritas, testa no navegador e encerra servidor/container. Não configura um ambiente comercial nem fornece contas reais. Na cloud atual, Chromium existente pode ser indicado por PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH.
+`test:db` e `test:auth:e2e` criam e removem PostgreSQL descartável, com senha aleatória e fixtures sintéticas. O segundo inicia o build Node, testa login → instituição → dados → logout e encerra os processos. Não usam bancos existentes. Com Chromium instalado, indique `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/caminho/do/chromium`.
 
-Estado de integração em 12/11/2026: PRs #1/#2/#3 integradas; a persistência da #4 chegou à main pela continuação #5, após CI aprovada. O incremento 04 de acesso está em branch própria para revisão. O bloqueio de deploy automático está na main desde a PR #2.
+A [CI da autenticação](https://github.com/thiagocanali/pagino/actions/runs/43205402954) aprovou instalação limpa, lint, tipos, 34 testes unitários, 25 de integração PG, 10 E2E gerais, 8 E2E autenticados e builds Node/Vercel. Isso não comprova e-mail real, Supavisor/Vercel remoto ou prontidão do MVP inteiro.
+
+`npm run db:generate` gera migrations offline, sem aplicar SQL. Não há migration remota ou deploy automático em scripts/CI. `build:vercel` somente compila artefatos locais.
+
+## Organização e arquitetura
+
+`app/` contém layouts/páginas/componentes; `server/` contém Nitro, auth e persistência; `shared/` contém schemas/tipos/permissões; `migrations/` contém DDL/policies; `tests/` contém verificações unitárias, PG e navegador.
+
+Better Auth é a única identidade. Domínio usa `institution_id`, FKs compostas, RLS e contexto local à transação, derivado de sessão validada no servidor. Tokens não são expostos nos DTOs de usuário/login. A UI técnica fica em `/foundation`; `/admin` é autenticado. Edições de CMS, mídias, templates e snapshots públicos seguem como incrementos futuros.
+
+## Documentação
+
+| Documento | Finalidade |
+| --- | --- |
+| [AGENTS.md](AGENTS.md) | Contribuição e segurança |
+| [Visão](docs/PRODUCT_VISION.md) | Público, problema e valor comercial |
+| [PRD](docs/PRD.md) | Requisitos, fluxos e aceite |
+| [Escopo](docs/MVP_SCOPE.md) | Limites do MVP |
+| [Arquitetura](docs/ARCHITECTURE.md) | Stack e fronteiras de confiança |
+| [Modelo](docs/DATA_MODEL.md) | Entidades e invariantes |
+| [Permissões](docs/PERMISSIONS.md) | Papéis e autorização |
+| [Templates](docs/TEMPLATE_SYSTEM.md) | Contrato do primeiro template |
+| [Segurança](docs/SECURITY.md) | Controles, riscos e operação |
+| [Roadmap](docs/ROADMAP.md) | Incrementos e dependências |
+| [Decisões](docs/DECISIONS.md) | ADRs e histórico |
+| [Testes](docs/TESTING.md) | Estratégia e evidências |
+
+## Infraestrutura e publicação
+
+Reutilizar o projeto Vercel `pagino`. `vercel.json` bloqueia deploys Git automáticos desde a PR #2. A aplicação Nuxt não foi publicada; a integração criou anteriormente um deployment do README inicial e um preview documental, registrados nas decisões. Produção exige autorização explícita.
+
+A integração Supabase dedicada ainda não foi configurada nesta execução. Antes de provisionar, descobrir recursos existentes e obter autorização; não reutilizar bancos de outros produtos. Transporte de e-mail, homologação remota, custos/plano comercial, retenção e avisos de dependências continuam como gates antes do piloto. Nenhum serviço pago está autorizado implicitamente.
