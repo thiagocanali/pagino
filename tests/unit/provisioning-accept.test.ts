@@ -1,13 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 import { createHash } from 'node:crypto'
+import { acceptInitialOwnerInvitation } from '../../server/provisioning/accept'
+import type { Authentication } from '../../server/auth/service'
 
 vi.mock('../../server/auth/service', async () => {
   const actual = await vi.importActual<typeof import('../../server/auth/service')>('../../server/auth/service')
   return { ...actual, authenticatedUser: vi.fn().mockResolvedValue({ id: 'user-1', email: 'owner@example.test', name: 'Owner' }) }
 })
-
-import { acceptInitialOwnerInvitation } from '../../server/provisioning/accept'
-import type { Authentication } from '../../server/auth/service'
 
 function runtime(execute: ReturnType<typeof vi.fn>) {
   return { domain: { execute } } as unknown as Authentication
