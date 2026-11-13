@@ -38,6 +38,30 @@ describe('atomic initial owner acceptance', () => {
     expect(membership).toMatchObject({ role: 'owner', status: 'active' })
     await expect(db`select pagino.accept_initial_owner_invitation(${owner},${digest})`).rejects.toThrow()
   })
+  it('rejects an unverified matching identity without consuming its invitation', async () => {
+    const unverified = randomUUID()
+    const tenant = randomUUID()
+    const hash = createHash('sha256').update(randomBytes(32)).digest('hex')
+    await db`insert into pagino_auth."user" (id,name,email,email_verified) values (${unverified},'Unverified','unverified-invite@example.test',false)`
+    await db`insert into pagino.institutions (id,name,slug) values (${tenant},'Unverified Tenant',${'unverified-' + tenant})`
+    await db`insert into pagino.initial_owner_invitations (institution_id,recipient_email,token_hash,encrypted_token,expires_at,delivery_status) values (${tenant},'unverified-invite@example.test',${hash},'encrypted',now()+interval '1 hour','sent')`
+    await expect(db`select pagino.accept_initial_owner_invitation(${unverified},${hash})`).rejects.toThrow()
+    const [invite] = await db`select used_at from pagino.initial_owner_invitations where token_hash=${hash}`
+    const [count] = await db`select count(*)::int as n from pagino.memberships where institution_id=${tenant}`
+    expect(invite?.used_at).toBeNull()
+    expect(count?.n).toBe(0)
+  })
+
+  it('rejects invitations not marked sent', async () => {
+    const tenant = randomUUID()
+    const hash = createHash('sha256').update(randomBytes(32)).digest('hex')
+    await db`insert into pagino.institutions (id,name,slug) values (${tenant},'Undelivered Tenant',${'undelivered-' + tenant})`
+    await db`insert into pagino.initial_owner_invitations (institution_id,recipient_email,token_hash,encrypted_token,expires_at,delivery_status) values (${tenant},'invite-owner@example.test',${hash},'encrypted',now()+interval '1 hour','failed')`
+    await expect(db`select pagino.accept_initial_owner_invitation(${owner},${hash})`).rejects.toThrow()
+    const [count] = await db`select count(*)::int as n from pagino.memberships where institution_id=${tenant}`
+    expect(count?.n).toBe(0)
+  })
+
   it('rejects expired tokens without creating memberships', async () => {
     const other = randomUUID()
     const otherToken = createHash('sha256').update(randomBytes(32)).digest('hex')
