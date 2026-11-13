@@ -48,3 +48,56 @@ CREATE POLICY provision_operator_ops_insert ON pagino.provisioning_operations FO
 CREATE POLICY provision_operator_audit_insert ON pagino.operator_audit_logs FOR INSERT TO provision_operator WITH CHECK (action = 'institution.provisioned');
 -- Separate invitation acceptance and owner-membership permissions require a dedicated
 -- narrow role and transaction in a follow-up implementation; no broad grants are issued here.
+
+-- The only elevation path: token possession + verified Better Auth identity with
+-- matching e-mail. The function executes with the migration owner, not app_runtime.
+-- The application must also authenticate the session before invoking this function.
+CREATE OR REPLACE FUNCTION pagino.accept_initial_owner_invitation(p_user_id text, p_token_hash text)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog
+AS $$
+DECLARE
+  v_invitation pagino.initial_owner_invitations%ROWTYPE;
+  v_email text;
+  v_verified boolean;
+  v_status text;
+BEGIN
+  IF p_user_id IS NULL OR p_token_hash IS NULL OR length(p_token_hash) <> 64 OR p_token_hash !~ '^[0-9a-f]{64}$' THEN
+    RAISE EXCEPTION 'INVALID_INVITATION' USING ERRCODE = '22023';
+  END IF;
+  SELECT lower(email), email_verified INTO v_email, v_verified
+  FROM pagino_auth."user" WHERE id = p_user_id;
+  IF NOT FOUND OR NOT v_verified THEN
+    RAISE EXCEPTION 'INVALID_INVITATION' USING ERRCODE = '22023';
+  END IF;
+  SELECT * INTO v_invitation FROM pagino.initial_owner_invitations
+  WHERE token_hash = p_token_hash FOR UPDATE;
+  IF NOT FOUND OR v_invitation.used_at IS NOT NULL
+     OR v_invitation.expires_at <= now()
+     OR v_invitation.delivery_status <> 'sent'
+     OR v_invitation.recipient_email <> v_email THEN
+    RAISE EXCEPTION 'INVALID_INVITATION' USING ERRCODE = '22023';
+  END IF;
+  SELECT status INTO v_status FROM pagino.institutions
+  WHERE id = v_invitation.institution_id FOR UPDATE;
+  IF v_status IS DISTINCT FROM 'active' THEN
+    RAISE EXCEPTION 'INVALID_INVITATION' USING ERRCODE = '22023';
+  END IF;
+  INSERT INTO pagino.memberships (institution_id, user_id, role, status)
+  VALUES (v_invitation.institution_id, p_user_id, 'owner', 'active')
+  ON CONFLICT (institution_id, user_id) DO NOTHING;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'INVALID_INVITATION' USING ERRCODE = '22023';
+  END IF;
+  UPDATE pagino.initial_owner_invitations
+  SET used_at = now(), encrypted_token = ''
+  WHERE id = v_invitation.id AND used_at IS NULL;
+  INSERT INTO pagino.audit_logs (institution_id, actor_user_id, action, entity_id)
+  VALUES (v_invitation.institution_id, p_user_id, 'institution.owner_accepted', v_invitation.institution_id);
+  RETURN v_invitation.institution_id;
+END;
+$$;
+REVOKE ALL ON FUNCTION pagino.accept_initial_owner_invitation(text,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION pagino.accept_initial_owner_invitation(text,text) TO app_runtime;
