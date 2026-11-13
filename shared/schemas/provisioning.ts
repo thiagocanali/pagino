@@ -4,7 +4,7 @@ import { z } from 'zod'
 export const provisionInstitutionSchema = z.strictObject({
   name: z.string().trim().min(3).max(160),
   slug: z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).min(3).max(60),
-  ownerEmail: z.email().trim().toLowerCase().max(254),
+  ownerEmail: z.string().trim().toLowerCase().max(254).pipe(z.email()),
   idempotencyKey: z.uuid(),
 })
 
