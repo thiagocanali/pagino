@@ -67,8 +67,16 @@ describe('PostgreSQL tenant boundary', () => {
     const roles = await runtime.db.execute(sql`select rolsuper, rolbypassrls from pg_roles where rolname = current_user`)
     expect(roles[0]).toMatchObject({ rolsuper: false, rolbypassrls: false })
     const tables = await admin`select relrowsecurity, relforcerowsecurity, pg_get_userbyid(relowner) as owner from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'pagino' and c.relkind = 'r'`
-    expect(tables).toHaveLength(5)
+    expect(tables).toHaveLength(8)
     for (const table of tables) expect(table).toMatchObject({ relrowsecurity: true, relforcerowsecurity: true, owner: 'postgres' })
+  })
+
+  it('denies runtime invocation of privileged owner invitation acceptance', async () => {
+    // A compromised domain connection must not be able to choose an arbitrary
+    // verified user id and mint an owner membership via SECURITY DEFINER.
+    await expect(runtime.db.execute(sql`select pagino.accept_initial_owner_invitation('fixture-owner-a', repeat('0', 64))`)).rejects.toThrow()
+    const privileges = await admin`select has_function_privilege('app_runtime', 'pagino.accept_initial_owner_invitation(text,text)', 'EXECUTE') as can_execute`
+    expect(privileges[0]?.can_execute).toBe(false)
   })
 
   it('denies every domain read without context', async () => {
