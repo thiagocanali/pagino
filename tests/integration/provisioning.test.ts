@@ -42,7 +42,7 @@ describe('atomic initial owner acceptance', () => {
     const other = randomUUID()
     const otherToken = createHash('sha256').update(randomBytes(32)).digest('hex')
     await db`insert into pagino.institutions (id,name,slug) values (${other},'Expired Tenant',${'expired-' + other})`
-    await db`insert into pagino.initial_owner_invitations (institution_id,recipient_email,token_hash,encrypted_token,expires_at,delivery_status) values (${other},'invite-wrong@example.test',${otherToken},'encrypted',now()-interval '1 minute','sent')`
+    await db`insert into pagino.initial_owner_invitations (institution_id,recipient_email,token_hash,encrypted_token,expires_at,created_at,delivery_status) values (${other},'invite-wrong@example.test',${otherToken},'encrypted',now()-interval '1 minute',now()-interval '2 hours','sent')`
     await expect(db`select pagino.accept_initial_owner_invitation(${wrong},${otherToken})`).rejects.toThrow()
     const [count] = await db`select count(*)::int as n from pagino.memberships where institution_id=${other}`
     expect(count!.n).toBe(0)
