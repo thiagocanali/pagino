@@ -26,6 +26,24 @@ beforeAll(async () => {
 afterAll(async () => { await db.end() })
 
 describe('atomic initial owner acceptance', () => {
+  it('keeps the provisioning role non-login, non-superuser and without bypass RLS', async () => {
+    const [role] = await db`select rolcanlogin, rolsuper, rolbypassrls, rolcreaterole from pg_roles where rolname = 'provision_operator'`
+    expect(role).toMatchObject({ rolcanlogin: false, rolsuper: false, rolbypassrls: false, rolcreaterole: false })
+    const [privileges] = await db`
+      select
+        has_table_privilege('provision_operator', 'pagino.institutions', 'INSERT') as can_create_institution,
+        has_table_privilege('provision_operator', 'pagino.memberships', 'INSERT') as can_create_membership,
+        has_table_privilege('provision_operator', 'pagino.initial_owner_invitations', 'INSERT') as can_create_invitation,
+        has_function_privilege('provision_operator', 'pagino.accept_initial_owner_invitation(text,text)', 'EXECUTE') as can_accept
+    `
+    expect(privileges).toMatchObject({
+      can_create_institution: true,
+      can_create_membership: false,
+      can_create_invitation: true,
+      can_accept: false,
+    })
+  })
+
   it('rejects the wrong verified recipient and preserves the invitation', async () => {
     await expect(db`select pagino.accept_initial_owner_invitation(${wrong},${digest})`).rejects.toThrow()
     const [invite] = await db`select used_at from pagino.initial_owner_invitations where token_hash=${digest}`
