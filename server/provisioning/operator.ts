@@ -31,7 +31,8 @@ export async function provisionInstitution(
         where p.idempotency_key = ${data.idempotencyKey}
       `
       if (previous.length) {
-        const existing = previous[0]
+        const existing = previous[0]!
+
         if (existing.slug !== data.slug || existing.name !== data.name || existing.recipient_email !== data.ownerEmail) throw new Error('Idempotency key reused with different input')
         return { id: existing.id as string, invitationId: existing.invitation_id as string, encryptedToken: existing.encrypted_token as string, status: existing.delivery_status as string, expiresAt: existing.expires_at as Date }
       }
