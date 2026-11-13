@@ -67,7 +67,7 @@ describe('PostgreSQL tenant boundary', () => {
     const roles = await runtime.db.execute(sql`select rolsuper, rolbypassrls from pg_roles where rolname = current_user`)
     expect(roles[0]).toMatchObject({ rolsuper: false, rolbypassrls: false })
     const tables = await admin`select relrowsecurity, relforcerowsecurity, pg_get_userbyid(relowner) as owner from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'pagino' and c.relkind = 'r'`
-    expect(tables).toHaveLength(5)
+    expect(tables).toHaveLength(8)
     for (const table of tables) expect(table).toMatchObject({ relrowsecurity: true, relforcerowsecurity: true, owner: 'postgres' })
   })
 
