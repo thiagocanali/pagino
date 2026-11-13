@@ -100,4 +100,6 @@ BEGIN
 END;
 $$;
 REVOKE ALL ON FUNCTION pagino.accept_initial_owner_invitation(text,text) FROM PUBLIC;
--- SECURITY: app_runtime must never receive EXECUTE on a SECURITY DEFINER\n-- function that accepts a caller-supplied user ID. Otherwise a direct SQL caller\n-- could impersonate a verified identity and seize an owner membership.\n-- Keep the function inaccessible until acceptance uses a DB-verified session\n-- or a dedicated narrowly-scoped executor with unforgeable identity context.\nREVOKE ALL ON FUNCTION pagino.accept_initial_owner_invitation(text,text) FROM app_runtime, auth_runtime, public_reader, provision_operator;
+-- SECURITY: a SECURITY DEFINER function must not accept a spoofable user id from app_runtime.
+-- Keep EXECUTE unavailable until the identity is database-bound.
+REVOKE ALL ON FUNCTION pagino.accept_initial_owner_invitation(text,text) FROM app_runtime, auth_runtime, public_reader, provision_operator;
