@@ -13,3 +13,6 @@ test-results/
 .DS_Store
 
 .local-mail/
+.vercel
+.env*
+!.env.example
