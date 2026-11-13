@@ -1,21 +1,10 @@
-import { defineEventHandler, readBody, getHeader } from 'h3'
-import { z } from 'zod'
-import { protectedOperation } from '../../auth/runtime'
-import { acceptInitialOwnerInvitation } from '../../provisioning/accept'
-import { AccessError } from '../../auth/service'
+import { defineEventHandler, createError } from 'h3'
 
-const bodySchema = z.strictObject({ token: z.string() })
-
-export default defineEventHandler(event => protectedOperation(event, async runtime => {
-  const origin = getHeader(event, 'origin')
-  if (origin !== runtime.origin) throw new AccessError(403)
-  if (getHeader(event, 'content-type')?.split(';')[0]?.trim().toLowerCase() !== 'application/json') throw new AccessError(400)
-  const length = Number(getHeader(event, 'content-length') || 0)
-  if (!Number.isFinite(length) || length > 8192) throw new AccessError(400)
-  const input = bodySchema.safeParse(await readBody(event))
-  if (!input.success) throw new AccessError(400)
-  const headers = new Headers()
-  const cookie = getHeader(event, 'cookie')
-  if (cookie) headers.set('cookie', cookie)
-  return acceptInitialOwnerInvitation(runtime, headers, input.data.token)
-}))
+/**
+ * Explicitly disabled until a database-verified session identity is available
+ * to the privileged membership-creation transaction. See TASK 04-C / PR #12.
+ * Never call a SECURITY DEFINER function using only a caller-provided user id.
+ */
+export default defineEventHandler(() => {
+  throw createError({ statusCode: 503, statusMessage: 'Invitation onboarding is not enabled yet' })
+})
