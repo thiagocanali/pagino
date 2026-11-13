@@ -29,6 +29,13 @@
       "when": 1794488298374,
       "tag": "0003_email_challenges",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794570000000,
+      "tag": "0004_initial_owner_provisioning",
+      "breakpoints": true
     }
   ]
 }
