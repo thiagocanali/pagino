@@ -93,8 +93,14 @@ describe('atomic initial owner acceptance', () => {
       await tx`set local role provision_operator`
       await tx`update pagino.initial_owner_invitations set recipient_email = 'attacker@example.test' where institution_id = ${tenant}`
     })).rejects.toThrow()
-    const [row] = await db`select recipient_email from pagino.initial_owner_invitations where institution_id = ${tenant}`
-    expect(row?.recipient_email).toBe('original@example.test')
+    for (const [column, value] of [['token_hash', '0'.repeat(64)], ['encrypted_token', 'forged']] as const) {
+      await expect(db.begin(async (tx) => {
+        await tx`set local role provision_operator`
+        await tx.unsafe(`update pagino.initial_owner_invitations set ${column} = $1 where institution_id = $2`, [value, tenant])
+      })).rejects.toThrow()
+    }
+    const [row] = await db`select recipient_email, token_hash, encrypted_token from pagino.initial_owner_invitations where institution_id = ${tenant}`
+    expect(row).toMatchObject({ recipient_email: 'original@example.test', token_hash: hash, encrypted_token: 'encrypted' })
   })
 
   it('cannot create an owner membership while acting as the provision operator', async () => {
