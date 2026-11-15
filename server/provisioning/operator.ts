@@ -19,7 +19,7 @@ export async function provisionInstitution(
   const origin = new URL(options.appOrigin)
   if (origin.origin !== options.appOrigin || (origin.protocol !== 'https:' && !['localhost', '127.0.0.1'].includes(origin.hostname))) throw new Error('Invalid application origin')
   assertSecureDatabaseUrl(options.databaseUrl)
-  const client = postgres(options.databaseUrl, { max: 1, prepare: false, connect_timeout: 5, connection: { options: '-c role=provision_operator' } })
+  const client = postgres(options.databaseUrl, { max: 1, prepare: false, connect_timeout: 5, connection: { role: 'provision_operator' } })
   try {
     const [role] = await client`select current_user as name, rolsuper, rolbypassrls, rolcreaterole, rolcreatedb, rolcanlogin, rolinherit from pg_roles where rolname = current_user`
     const [session] = await client`select session_user as name, rolsuper, rolbypassrls, rolcreaterole, rolcreatedb, rolcanlogin, rolinherit from pg_roles where rolname = session_user`
