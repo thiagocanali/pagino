@@ -31,3 +31,12 @@ A criação do projeto e o teste SQL de leitura **não equivalem à migração c
 | P1 | Piloto hospedado | Bloqueada | Depende de onboarding seguro, testes completos e autorização de produção |
 
 A role `provision_operator` é **NOLOGIN**: o código atual não possui ainda bootstrap de credenciais delegadas para uso operacional. A verificação adicional de `rolcanlogin=false` é defesa em profundidade, não uma solução para esse bloqueio. Nenhuma mudança foi aplicada ao banco principal Neon.
+
+## Ciclo de segurança operacional — 15/11/2026
+
+- **CI anterior validado:** `43750685499`, SHA `eea5b4b`, sucesso (não cobre commits deste ciclo).
+- **P0 / Em andamento:** a entrega de e-mail só retorna `sent` quando a transição de status é confirmada pelo PostgreSQL; estados inesperados são rejeitados, e uma falha tardia de entrega não rebaixa um convite já marcado `sent`. Evidência: alterações em `server/provisioning/operator.ts`; aguardar CI do HEAD.
+- **P0 / Em andamento:** além de exigir `current_user=provision_operator` sem privilégios, a operação rejeita `session_user` com SUPERUSER/BYPASSRLS/CREATEROLE/CREATEDB. Não transforma uma role NOLOGIN em LOGIN e não concede acesso adicional. A delegação segura continua pendente.
+- **P0 / Bloqueada:** endpoint de aceite HTTP permanece desabilitado por identidade SQL falsificável; nenhuma autorização para habilitar antes da correção.
+- **P1 / Pendente:** executar migrations em branch Neon de teste isolada, com validação das permissões e conexão TLS efetiva, sem aplicar no banco principal.
+- **P1 / Pendente:** confirmar GitHub Actions no SHA final do ciclo antes de marcar o conjunto validado.
