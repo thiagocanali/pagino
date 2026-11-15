@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto'
 import postgres from 'postgres'
+import { assertSecureDatabaseUrl } from '../db/connection-security'
 import { symmetricEncrypt, symmetricDecrypt } from 'better-auth/crypto'
 import type { AuthMailTransport } from '../auth/mail'
 import { normalizeProvisionInput } from '../../shared/schemas/provisioning'
@@ -16,6 +17,7 @@ export async function provisionInstitution(
   if (options.encryptionSecret.length < 32) throw new Error('Provisioning encryption secret missing')
   const origin = new URL(options.appOrigin)
   if (origin.origin !== options.appOrigin || (origin.protocol !== 'https:' && !['localhost', '127.0.0.1'].includes(origin.hostname))) throw new Error('Invalid application origin')
+  assertSecureDatabaseUrl(options.databaseUrl)
   const client = postgres(options.databaseUrl, { max: 1, prepare: false, connect_timeout: 5 })
   try {
     const [role] = await client`select current_user as name, rolsuper, rolbypassrls, rolcreaterole from pg_roles where rolname = current_user`
