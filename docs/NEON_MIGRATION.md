@@ -51,3 +51,18 @@ A role `provision_operator` é **NOLOGIN**: o código atual não possui ainda bo
 - `provision_operator_login` foi criado como LOGIN + NOINHERIT, sem SUPERUSER/CREATEDB/CREATEROLE/BYPASSRLS, com membership e atributo SET para `provision_operator`. A consulta confirmou que a identidade pode assumir a role, mas a conexão autenticada real ainda não foi testada porque nenhuma senha foi atribuída.
 - **Bloqueio externo restante:** configurar uma senha forte para `provision_operator_login` pelo Neon Console e armazenar a URL resultante em secret de ambiente dedicado, fora do Git. Não configurar esse segredo na Vercel de produção nesta etapa.
 - Nenhuma migration foi aplicada na branch Neon principal; nenhum dado real foi alterado.
+
+
+## Delegação do operador — atualização
+
+A migration `0005_provision_operator_login.sql` cria `provision_operator_login` como `LOGIN NOINHERIT`, sem privilégios elevados, e concede apenas a associação necessária para `SET ROLE provision_operator`. O serviço agora executa explicitamente `SET ROLE provision_operator` e valida ambas as identidades (`current_user` e `session_user`), incluindo `rolinherit=false` no login.
+
+O migration foi aplicado com sucesso à branch isolada `br-icy-king-b6kbstg3`; consultas confirmaram:
+- login `provision_operator_login`: LOGIN, NOINHERIT, sem SUPERUSER/CREATEDB/CREATEROLE/BYPASSRLS;
+- membership e atributo SET para `provision_operator`;
+- nenhuma permissão para criar membership ou executar a função de aceite;
+- RLS + FORCE RLS nas tabelas do schema `pagino`;
+- app/auth runtime sem SELECT nas tabelas de convite/operação;
+- função de aceite não executável pelas roles runtime nem pelo operador.
+
+A senha da role não foi definida. Para habilitar a conexão operacional, uma credencial forte precisa ser definida fora do Git no Neon e guardada em secret privado do ambiente de execução. A ausência de senha mantém o worker inoperante por padrão.
