@@ -23,7 +23,12 @@ export async function provisionInstitution(
   try {
     const [role] = await client`select current_user as name, rolsuper, rolbypassrls, rolcreaterole, rolcreatedb, rolcanlogin from pg_roles where rolname = current_user`
     const [session] = await client`select session_user as name, rolsuper, rolbypassrls, rolcreaterole, rolcreatedb from pg_roles where rolname = session_user`
-    assertRestrictedOperator(role, session)
+    const asRole = (row: Record<string, unknown> | undefined) => row && ({
+      name: String(row.name), rolsuper: row.rolsuper === true, rolbypassrls: row.rolbypassrls === true,
+      rolcreaterole: row.rolcreaterole === true, rolcreatedb: row.rolcreatedb === true,
+      rolcanlogin: row.rolcanlogin === true,
+    })
+    assertRestrictedOperator(asRole(role), asRole(session))
     const receipt = await client.begin(async tx => {
       // Serialize retries and avoid leaking a newly generated token on conflict.
       await tx`select pg_advisory_xact_lock(hashtextextended(${data.idempotencyKey}, 0))`
