@@ -50,13 +50,6 @@
       "when": 1794761000000,
       "tag": "0006_runtime_logins",
       "breakpoints": false
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1794762000000,
-      "tag": "0006_runtime_logins",
-      "breakpoints": false
     }
   ]
 }
