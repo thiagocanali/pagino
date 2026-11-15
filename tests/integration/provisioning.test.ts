@@ -80,6 +80,23 @@ describe('atomic initial owner acceptance', () => {
     expect(row?.delivery_status).toBe('sent')
   })
 
+  it('denies the operator from changing invitation recipient or token', async () => {
+    const slug = 'immutable-' + randomUUID()
+    const hash = createHash('sha256').update(randomBytes(32)).digest('hex')
+    const tenant = await db.begin(async (tx) => {
+      await tx`set local role provision_operator`
+      const [row] = await tx`insert into pagino.institutions (name, slug) values ('Immutable Invite', ${slug}) returning id`
+      await tx`insert into pagino.initial_owner_invitations (institution_id, recipient_email, token_hash, encrypted_token, expires_at) values (${row!.id}, 'original@example.test', ${hash}, 'encrypted', now() + interval '1 hour')`
+      return row!.id as string
+    })
+    await expect(db.begin(async (tx) => {
+      await tx`set local role provision_operator`
+      await tx`update pagino.initial_owner_invitations set recipient_email = 'attacker@example.test' where institution_id = ${tenant}`
+    })).rejects.toThrow()
+    const [row] = await db`select recipient_email from pagino.initial_owner_invitations where institution_id = ${tenant}`
+    expect(row?.recipient_email).toBe('original@example.test')
+  })
+
   it('cannot create an owner membership while acting as the provision operator', async () => {
     await expect(db.begin(async (tx) => {
       await tx`set local role provision_operator`
