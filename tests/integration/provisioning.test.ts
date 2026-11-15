@@ -27,8 +27,8 @@ afterAll(async () => { await db.end() })
 
 describe('atomic initial owner acceptance', () => {
   it('keeps the provisioning role non-login, non-superuser and without bypass RLS', async () => {
-    const [role] = await db`select rolcanlogin, rolsuper, rolbypassrls, rolcreaterole from pg_roles where rolname = 'provision_operator'`
-    expect(role).toMatchObject({ rolcanlogin: false, rolsuper: false, rolbypassrls: false, rolcreaterole: false })
+    const [role] = await db`select rolcanlogin, rolsuper, rolbypassrls, rolcreaterole, rolcreatedb from pg_roles where rolname = 'provision_operator'`
+    expect(role).toMatchObject({ rolcanlogin: false, rolsuper: false, rolbypassrls: false, rolcreaterole: false, rolcreatedb: false })
     const [privileges] = await db`
       select
         has_table_privilege('provision_operator', 'pagino.institutions', 'INSERT') as can_create_institution,
