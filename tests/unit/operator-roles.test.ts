@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { assertRestrictedOperator, parseRole } from '../../server/provisioning/operator-roles'
 
-const operator = { name: 'provision_operator', rolcanlogin: false, rolsuper: false, rolbypassrls: false, rolcreaterole: false, rolcreatedb: false }
-const login = { ...operator, name: 'pagino_operator_login', rolcanlogin: true }
+const operator = { name: 'provision_operator', rolcanlogin: false, rolinherit: true, rolsuper: false, rolbypassrls: false, rolcreaterole: false, rolcreatedb: false }
+const login = { ...operator, name: 'pagino_operator_login', rolcanlogin: true, rolinherit: false }
 
 describe('operator identity checks', () => {
   it('accepts a restricted NOLOGIN operator behind a restricted login', () => {
@@ -16,6 +16,9 @@ describe('operator identity checks', () => {
   it.each(['rolsuper', 'rolbypassrls', 'rolcreaterole', 'rolcreatedb'] as const)('rejects %s on either identity', privilege => {
     expect(() => assertRestrictedOperator({ ...operator, [privilege]: true }, login)).toThrow()
     expect(() => assertRestrictedOperator(operator, { ...login, [privilege]: true })).toThrow()
+  })
+  it('rejects a login role that inherits privileges implicitly', () => {
+    expect(() => assertRestrictedOperator(operator, { ...login, rolinherit: true })).toThrow()
   })
   it('rejects missing login role', () => {
     expect(() => assertRestrictedOperator(operator, undefined)).toThrow()
@@ -32,10 +35,12 @@ describe('PostgreSQL role metadata parsing', () => {
     null,
     {},
     { ...operator, rolcanlogin: undefined },
+    { ...operator, rolinherit: undefined },
     { ...operator, rolsuper: 'false' },
     { ...operator, rolbypassrls: 0 },
     { ...operator, rolcreaterole: null },
     { ...operator, rolcreatedb: undefined },
+    { ...operator, rolinherit: 'true' },
   ])('rejects missing or mistyped privilege metadata', value => {
     expect(parseRole(value)).toBeUndefined()
     expect(() => assertRestrictedOperator(parseRole(value), login)).toThrow()
