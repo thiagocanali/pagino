@@ -66,6 +66,20 @@ describe('atomic initial owner acceptance', () => {
     expect(audit?.action).toBe('institution.provisioned')
   })
 
+  it('allows the restricted operator to mark a pending invitation as sent', async () => {
+    const slug = 'delivery-' + randomUUID()
+    const hash = createHash('sha256').update(randomBytes(32)).digest('hex')
+    const tenant = await db.begin(async (tx) => {
+      await tx`set local role provision_operator`
+      const [row] = await tx`insert into pagino.institutions (name, slug) values ('Delivery Test', ${slug}) returning id`
+      await tx`insert into pagino.initial_owner_invitations (institution_id, recipient_email, token_hash, encrypted_token, expires_at) values (${row!.id}, 'delivery@example.test', ${hash}, 'encrypted', now() + interval '1 hour')`
+      await tx`update pagino.initial_owner_invitations set delivery_status = 'sent' where institution_id = ${row!.id} and used_at is null`
+      return row!.id as string
+    })
+    const [row] = await db`select delivery_status from pagino.initial_owner_invitations where institution_id = ${tenant}`
+    expect(row?.delivery_status).toBe('sent')
+  })
+
   it('cannot create an owner membership while acting as the provision operator', async () => {
     await expect(db.begin(async (tx) => {
       await tx`set local role provision_operator`
