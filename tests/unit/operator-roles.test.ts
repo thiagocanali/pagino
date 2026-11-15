@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { assertRestrictedOperator } from '../../server/provisioning/operator-roles'
+import { assertRestrictedOperator, parseRole } from '../../server/provisioning/operator-roles'
 
 const operator = { name: 'provision_operator', rolcanlogin: false, rolsuper: false, rolbypassrls: false, rolcreaterole: false, rolcreatedb: false }
 const login = { ...operator, name: 'pagino_operator_login', rolcanlogin: true }
@@ -19,5 +19,25 @@ describe('operator identity checks', () => {
   })
   it('rejects missing login role', () => {
     expect(() => assertRestrictedOperator(operator, undefined)).toThrow()
+  })
+})
+
+
+describe('PostgreSQL role metadata parsing', () => {
+  it('parses a complete role record', () => {
+    expect(parseRole(operator)).toEqual(operator)
+  })
+  it.each([
+    undefined,
+    null,
+    {},
+    { ...operator, rolcanlogin: undefined },
+    { ...operator, rolsuper: 'false' },
+    { ...operator, rolbypassrls: 0 },
+    { ...operator, rolcreaterole: null },
+    { ...operator, rolcreatedb: undefined },
+  ])('rejects missing or mistyped privilege metadata', value => {
+    expect(parseRole(value)).toBeUndefined()
+    expect(() => assertRestrictedOperator(parseRole(value), login)).toThrow()
   })
 })
