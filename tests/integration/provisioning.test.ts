@@ -66,6 +66,19 @@ describe('atomic initial owner acceptance', () => {
     expect(audit?.action).toBe('institution.provisioned')
   })
 
+  it('rolls back institution and site when the operator audit write fails', async () => {
+    const slug = 'operator-rollback-' + randomUUID()
+    await expect(db.begin(async (tx) => {
+      await tx`set local role provision_operator`
+      const [institution] = await tx`insert into pagino.institutions (name, slug) values ('Rollback Test', ${slug}) returning id`
+      await tx`insert into pagino.sites (institution_id) values (${institution!.id})`
+      // The operator audit policy allows only institution.provisioned.
+      await tx`insert into pagino.operator_audit_logs (institution_id, action) values (${institution!.id}, 'unauthorized.action')`
+    })).rejects.toThrow()
+    const [remaining] = await db`select count(*)::int as total from pagino.institutions where slug = ${slug}`
+    expect(remaining?.total).toBe(0)
+  })
+
   it('denies SECURITY DEFINER acceptance to every non-privileged runtime role', async () => {
     for (const role of ['app_runtime', 'auth_runtime', 'public_reader', 'provision_operator']) {
       const [privilege] = await db`select has_function_privilege(${role}, 'pagino.accept_initial_owner_invitation(text,text)', 'EXECUTE') as allowed`
