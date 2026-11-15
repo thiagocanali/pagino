@@ -9,6 +9,8 @@ describe('database connection security', () => {
     expect(() => assertSecureDatabaseUrl('postgres://user:pass@ep.example.neon.tech/pagino')).toThrow(/sslmode/)
     expect(() => assertSecureDatabaseUrl('postgres://user:pass@ep.example.neon.tech/pagino?sslmode=disable')).toThrow(/sslmode/)
     expect(() => assertSecureDatabaseUrl('postgres://user:pass@ep.example.neon.tech/pagino?sslmode=prefer')).toThrow(/sslmode/)
+    expect(() => assertSecureDatabaseUrl('postgres://user:pass@ep.example.neon.tech/pagino?sslmode=require&sslmode=disable')).toThrow(/sslmode/)
+    expect(() => assertSecureDatabaseUrl('postgres://user:pass@ep.example.neon.tech/pagino?sslmode=disable&sslmode=require')).toThrow(/sslmode/)
     expect(() => assertSecureDatabaseUrl('postgres://user:pass@ep.example.neon.tech/pagino?sslmode=require')).not.toThrow()
     expect(() => assertSecureDatabaseUrl('postgresql://user:pass@ep.example.neon.tech/pagino?sslmode=verify-full')).not.toThrow()
   })
