@@ -29,7 +29,7 @@ Para usar banco autorizado, copie `.env.example` para `.env.local`, preencha as 
 npm run dev -- --dotenv .env.local
 ```
 
-As conexões exigem as roles restritas `auth_runtime` e `app_runtime`; nunca use `postgres`, owner ou BYPASSRLS. `NUXT_AUTH_BASE_URL` deve ser uma origem exata, sem caminho/barra final; HTTPS obrigatório fora de loopback. O servidor Node do build recebe variáveis pelo processo e não carrega `.env.local` automaticamente. Não compartilhe segredos em chat ou Git.
+As conexões usam os logins dedicados `auth_runtime_login` e `app_runtime_login` (NOINHERIT), que assumem as roles restritas `auth_runtime` e `app_runtime` no startup de cada conexão. Nunca use `postgres`, owner ou BYPASSRLS. Configure senhas fora do Git; consulte `docs/NEON_MIGRATION.md`. `NUXT_AUTH_BASE_URL` deve ser uma origem exata, sem caminho/barra final; HTTPS obrigatório fora de loopback. O servidor Node do build recebe variáveis pelo processo e não carrega `.env.local` automaticamente. Não compartilhe segredos em chat ou Git.
 
 ## Verificação reproduzível
 
