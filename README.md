@@ -78,7 +78,7 @@ Better Auth é a única identidade. Domínio usa `institution_id`, FKs compostas
 
 Reutilizar o projeto Vercel `pagino`. `vercel.json` bloqueia deploys Git automáticos desde a PR #2. A aplicação Nuxt não foi publicada; a integração criou anteriormente um deployment do README inicial e um preview documental, registrados nas decisões. Produção exige autorização explícita.
 
-A integração Supabase dedicada ainda não foi configurada nesta execução. Antes de provisionar, descobrir recursos existentes e obter autorização; não reutilizar bancos de outros produtos. Transporte de e-mail, homologação remota, custos/plano comercial, retenção e avisos de dependências continuam como gates antes do piloto. Nenhum serviço pago está autorizado implicitamente.
+A infraestrutura foi direcionada ao **Neon PostgreSQL**: projeto exclusivo `pagino` (`dark-night-58119391`) criado na região de São Paulo, PostgreSQL 17. A estrutura ainda não foi migrada para esse banco, e nenhuma variável de produção foi alterada. Consulte [Migração Neon](docs/NEON_MIGRATION.md) para os gates de TLS, roles, migrations e validação; não reutilize credenciais de outros produtos. Transporte de e-mail, homologação remota, custos/plano comercial, retenção e avisos de dependências continuam como gates antes do piloto. Nenhum serviço pago está autorizado implicitamente.
 
 ## Recuperação e verificação — TASK 04-B
 
