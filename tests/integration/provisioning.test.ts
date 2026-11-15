@@ -44,6 +44,28 @@ describe('atomic initial owner acceptance', () => {
     })
   })
 
+  it('provisions an institution atomically under the restricted operator role', async () => {
+    const slug = 'operator-' + randomUUID()
+    const key = randomUUID()
+    const hash = createHash('sha256').update(randomBytes(32)).digest('hex')
+    const created = await db.begin(async (tx) => {
+      await tx`set local role provision_operator`
+      const [institution] = await tx`insert into pagino.institutions (name, slug) values ('Operator Test', ${slug}) returning id`
+      const id = institution!.id as string
+      await tx`insert into pagino.sites (institution_id) values (${id})`
+      await tx`insert into pagino.initial_owner_invitations (institution_id, recipient_email, token_hash, encrypted_token, expires_at) values (${id}, 'operator@example.test', ${hash}, 'encrypted', now() + interval '1 hour')`
+      await tx`insert into pagino.provisioning_operations (idempotency_key, institution_id) values (${key}, ${id})`
+      await tx`insert into pagino.operator_audit_logs (institution_id, action) values (${id}, 'institution.provisioned')`
+      return id
+    })
+    const [institution] = await db`select id from pagino.institutions where id = ${created}`
+    const [invitation] = await db`select delivery_status from pagino.initial_owner_invitations where institution_id = ${created}`
+    const [audit] = await db`select action from pagino.operator_audit_logs where institution_id = ${created}`
+    expect(institution?.id).toBe(created)
+    expect(invitation?.delivery_status).toBe('pending')
+    expect(audit?.action).toBe('institution.provisioned')
+  })
+
   it('denies SECURITY DEFINER acceptance to every non-privileged runtime role', async () => {
     for (const role of ['app_runtime', 'auth_runtime', 'public_reader', 'provision_operator']) {
       const [privilege] = await db`select has_function_privilege(${role}, 'pagino.accept_initial_owner_invitation(text,text)', 'EXECUTE') as allowed`
