@@ -66,3 +66,10 @@ O migration foi aplicado com sucesso à branch isolada `br-icy-king-b6kbstg3`; c
 - função de aceite não executável pelas roles runtime nem pelo operador.
 
 A senha da role não foi definida. Para habilitar a conexão operacional, uma credencial forte precisa ser definida fora do Git no Neon e guardada em secret privado do ambiente de execução. A ausência de senha mantém o worker inoperante por padrão.
+
+
+## Logins isolados dos runtimes — migration 0006
+
+A migration `0006_runtime_logins.sql` cria `app_runtime_login` e `auth_runtime_login` como LOGIN + NOINHERIT, sem privilégios elevados, cada um membro somente da respectiva role NOLOGIN. Os pools Postgres executam `SET ROLE app_runtime` ou `SET ROLE auth_runtime` em **cada conexão aberta** via `onconnect`, para não depender de estado de uma conexão específica do pool. Os URLs em `.env.example` agora indicam os logins dedicados.
+
+A migration foi aplicada manualmente na branch Neon isolada `br-icy-king-b6kbstg3`; consulta de catálogo confirmou ambos os logins NOINHERIT, sem privilégios elevados, e membership SET apenas para o runtime correspondente. As senhas não foram definidas. Configuração de senha e secrets de ambiente continuam sendo intervenção externa, fora do Git.
