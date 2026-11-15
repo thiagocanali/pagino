@@ -40,3 +40,14 @@ A role `provision_operator` é **NOLOGIN**: o código atual não possui ainda bo
 - **P0 / Bloqueada:** endpoint de aceite HTTP permanece desabilitado por identidade SQL falsificável; nenhuma autorização para habilitar antes da correção.
 - **P1 / Pendente:** executar migrations em branch Neon de teste isolada, com validação das permissões e conexão TLS efetiva, sem aplicar no banco principal.
 - **P1 / Pendente:** confirmar GitHub Actions no SHA final do ciclo antes de marcar o conjunto validado.
+
+
+## Validação isolada de migrations — 15/11/2026
+
+- Criada branch Neon não padrão `pagino-task-04c-validation` (`br-icy-king-b6kbstg3`) a partir do projeto Pagino, com compute limitado a 0.25 CU. A tentativa de configurar suspensão em 300s foi recusada pelo plano; a branch foi criada sem alterar o default.
+- Aplicadas em transações separadas as migrations `0000` a `0004` e, depois, `0005_provision_operator_login.sql`. A primeira tentativa do parser de migrations incluiu indevidamente o marcador Drizzle como comentário e aplicou apenas a primeira instrução de `0000`; a aplicação restante foi executada com separação corrigida, seguida das migrations completas.
+- `describe_branch` confirmou schemas `pagino` e `pagino_auth`, tabelas de domínio, índices e função `accept_initial_owner_invitation`.
+- Consulta de catálogo confirmou RLS e FORCE RLS em todas as tabelas do schema `pagino`; `app_runtime` e `auth_runtime` não possuem SELECT nas tabelas de convites e operações; a função SECURITY DEFINER não pode ser executada por app_runtime, auth_runtime ou provision_operator.
+- `provision_operator_login` foi criado como LOGIN + NOINHERIT, sem SUPERUSER/CREATEDB/CREATEROLE/BYPASSRLS, com membership e atributo SET para `provision_operator`. A consulta confirmou que a identidade pode assumir a role, mas a conexão autenticada real ainda não foi testada porque nenhuma senha foi atribuída.
+- **Bloqueio externo restante:** configurar uma senha forte para `provision_operator_login` pelo Neon Console e armazenar a URL resultante em secret de ambiente dedicado, fora do Git. Não configurar esse segredo na Vercel de produção nesta etapa.
+- Nenhuma migration foi aplicada na branch Neon principal; nenhum dado real foi alterado.
