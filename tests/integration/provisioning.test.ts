@@ -75,6 +75,17 @@ describe('atomic initial owner acceptance', () => {
     expect(count?.total).toBe(0)
   })
 
+  it('does not expose provisioned invitations to the application runtime', async () => {
+    await expect(db.begin(async (tx) => {
+      await tx`set local role app_runtime`
+      await tx`select * from pagino.initial_owner_invitations`
+    })).rejects.toThrow()
+    await expect(db.begin(async (tx) => {
+      await tx`set local role auth_runtime`
+      await tx`select * from pagino.provisioning_operations`
+    })).rejects.toThrow()
+  })
+
   it('rolls back institution and site when the operator audit write fails', async () => {
     const slug = 'operator-rollback-' + randomUUID()
     await expect(db.begin(async (tx) => {
