@@ -18,3 +18,16 @@ O projeto já utiliza PostgreSQL padrão, `postgres`, Drizzle e Better Auth, sem
 ## Limites de conclusão
 
 A criação do projeto e o teste SQL de leitura **não equivalem à migração concluída**. Faltam migrations remotas revisadas, roles e URLs privadas, conexão TLS verificada do cliente, testes E2E remotos e liberação segura do fluxo de primeiro proprietário. Nenhum dado Supabase antigo foi excluído.
+
+## Registro de execução — 15/11/2026
+
+| Prioridade | Tarefa | Estado | Evidência / próxima ação |
+| --- | --- | --- | --- |
+| P0 | TLS obrigatório em conexões remotas | Em andamento | Helper, integrações e testes enviados; aguardar CI do HEAD para validar |
+| P0 | Menor privilégio no provisionamento | Em andamento | Runtime recusa role `provision_operator` com `LOGIN`, `CREATEDB`, `CREATEROLE`, `SUPERUSER` ou `BYPASSRLS`; teste SQL confere role NOLOGIN/NOCREATEDB; aguardar CI |
+| P0 | Aceite de primeiro owner com identidade vinculada ao banco | Bloqueada | Endpoint 503 intencional até implementação de executor seguro e cadastro vinculado ao convite |
+| P1 | Testar migrations em branch Neon descartável | Pendente | Requer ensaio isolado, sem alterar banco principal, e revisão de grants/RLS |
+| P1 | Credenciais de runtime e homologação | Pendente | Provisionar logins distintos e restritos; TLS e E2E remoto, sem secrets em Git |
+| P1 | Piloto hospedado | Bloqueada | Depende de onboarding seguro, testes completos e autorização de produção |
+
+A role `provision_operator` é **NOLOGIN**: o código atual não possui ainda bootstrap de credenciais delegadas para uso operacional. A verificação adicional de `rolcanlogin=false` é defesa em profundidade, não uma solução para esse bloqueio. Nenhuma mudança foi aplicada ao banco principal Neon.
