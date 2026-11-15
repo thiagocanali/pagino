@@ -177,6 +177,14 @@ describe('atomic initial owner acceptance', () => {
     expect(count?.n).toBe(0)
   })
 
+  it('does not create a second owner when accepting a reused token', async () => {
+    const [membership] = await db`select count(*)::int as total from pagino.memberships where institution_id = ${institution} and user_id = ${owner}`
+    expect(membership?.total).toBe(1)
+    await expect(db`select pagino.accept_initial_owner_invitation(${owner}, ${digest})`).rejects.toThrow()
+    const [after] = await db`select count(*)::int as total from pagino.memberships where institution_id = ${institution} and user_id = ${owner}`
+    expect(after?.total).toBe(1)
+  })
+
   it('rejects expired tokens without creating memberships', async () => {
     const other = randomUUID()
     const otherToken = createHash('sha256').update(randomBytes(32)).digest('hex')
