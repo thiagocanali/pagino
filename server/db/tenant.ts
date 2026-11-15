@@ -7,7 +7,7 @@ import { assertSecureDatabaseUrl } from './connection-security'
 
 export function createDomainDatabase(url: string) {
   assertSecureDatabaseUrl(url)
-  const client = postgres(url, { max: 2, prepare: false, connect_timeout: 5, idle_timeout: 20, onconnect: async connection => { await connection`set role app_runtime` } })
+  const client = postgres(url, { max: 2, prepare: false, connect_timeout: 5, idle_timeout: 20, connection: { options: '-c role=app_runtime' } })
   return { db: drizzle(client, { schema }), close: () => client.end() }
 }
 
