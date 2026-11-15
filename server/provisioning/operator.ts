@@ -55,6 +55,7 @@ export async function provisionInstitution(
       return { id: institution.id as string, invitationId: invite.id as string, encryptedToken, status: 'pending', expiresAt }
     })
     if (receipt.status === 'sent') return { institutionId: receipt.id, deliveryStatus: 'sent' as const }
+    if (!['pending', 'failed'].includes(receipt.status)) throw new Error('Invalid invitation delivery state')
     if (receipt.expiresAt.getTime() <= Date.now()) throw new Error('Invitation expired; requires explicit operator recovery')
     const token = await symmetricDecrypt({ key: options.encryptionSecret, data: receipt.encryptedToken })
     // No token is printed, logged, or returned to the caller.
@@ -66,10 +67,11 @@ export async function provisionInstitution(
       })
     }
     catch {
-      await client`update pagino.initial_owner_invitations set delivery_status = 'failed' where id = ${receipt.invitationId} and used_at is null`
+      await client`update pagino.initial_owner_invitations set delivery_status = 'failed' where id = ${receipt.invitationId} and used_at is null and delivery_status <> 'sent'`
       throw new Error('Invitation delivery failed; retry with same idempotency key')
     }
-    await client`update pagino.initial_owner_invitations set delivery_status = 'sent' where id = ${receipt.invitationId} and used_at is null`
+    const updated = await client`update pagino.initial_owner_invitations set delivery_status = 'sent' where id = ${receipt.invitationId} and used_at is null and delivery_status in ('pending', 'failed') returning id`
+    if (updated.length !== 1) throw new Error('Invitation delivery status could not be confirmed')
     return { institutionId: receipt.id, deliveryStatus: 'sent' as const }
   }
   finally { await client.end() }
