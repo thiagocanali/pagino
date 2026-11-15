@@ -74,3 +74,17 @@ Os testes de integração adicionais exercitam `SET LOCAL ROLE provision_operato
 - **CI como gate:** `.github/workflows/ci.yml` executa lint, typecheck, unidade, PostgreSQL descartável, builds Nuxt/Vercel e Playwright. A execução `43742809039` passou no SHA `d715945`. Commits intermediários podem cancelar jobs anteriores por `concurrency.cancel-in-progress`; agrupar mudanças coerentes antes de push reduz desperdício de CI.
 - **Política operacional:** fazer commits locais agrupados e push por conjunto validável; reservar previews manuais e autorizados para testes que dependam da hospedagem, preferencialmente após CI verde. Nunca repetir deploy quando houver bloqueio de cota; continuar desenvolvimento/testes sem Vercel.
 - **Limite da conclusão:** a inspeção de deployments mostra que esta branch não gerou previews recentes; não demonstra que outros projetos da conta não estejam consumindo a cota. Revisar a configuração Git Deployment por branch/ambiente no painel antes de qualquer futura ativação, sem alterar produção ou proteções.
+
+## Ciclo de execução em lotes — 15/11/2026
+
+| Prioridade | Entrega | Estado | Evidência e próximo passo |
+| --- | --- | --- | --- |
+| P0 | CI anterior do provisionamento | Validada | Run 43750685499, SHA eea5b4b, success |
+| P0 | Persistência do status de entrega de convite | Em andamento | UPDATE condicional e RETURNING; aguarda CI do HEAD |
+| P0 | Verificação de privilégios do login operacional | Em andamento | Validação de current_user e session_user, com testes unitários; aguarda CI |
+| P0 | Aceite de convite vinculado a identidade segura | Bloqueada | Função SQL atual recebe user ID falsificável; endpoint 503 permanece fechado |
+| P1 | Migrations e RLS em branch Neon isolada | Pendente | Não aplicar migrations no banco principal; revisar compatibilidade e papéis |
+| P1 | Bootstrap delegado da role NOLOGIN | Pendente | Projetar login mínimo com SET ROLE transacional, sem grants de runtime |
+| P1 | CI do lote final | Pendente | Verificar run do SHA final, corrigir eventuais falhas |
+
+Próxima execução: acompanhar CI do HEAD e, depois, ensaiar migrations no Neon isolado. A PR #12 continua draft, sem deploy e sem merge.
