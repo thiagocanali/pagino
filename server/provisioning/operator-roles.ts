@@ -6,13 +6,14 @@ export type Role = {
   rolcreaterole: boolean
   rolcreatedb: boolean
   rolcanlogin: boolean
+  rolinherit: boolean
 }
 
 /** PostgreSQL drivers expose rows as generic objects; reject missing or mistyped privilege flags. */
 export function parseRole(value: unknown): Role | undefined {
   if (!value || typeof value !== 'object') return undefined
   const row = value as Record<string, unknown>
-  const booleanFields = ['rolsuper', 'rolbypassrls', 'rolcreaterole', 'rolcreatedb', 'rolcanlogin'] as const
+  const booleanFields = ['rolsuper', 'rolbypassrls', 'rolcreaterole', 'rolcreatedb', 'rolcanlogin', 'rolinherit'] as const
   if (typeof row.name !== 'string' || booleanFields.some(field => typeof row[field] !== 'boolean')) return undefined
   return {
     name: row.name,
@@ -21,6 +22,7 @@ export function parseRole(value: unknown): Role | undefined {
     rolcreaterole: row.rolcreaterole as boolean,
     rolcreatedb: row.rolcreatedb as boolean,
     rolcanlogin: row.rolcanlogin as boolean,
+    rolinherit: row.rolinherit as boolean,
   }
 }
 
@@ -29,7 +31,7 @@ export function assertRestrictedOperator(active: Role | undefined, login: Role |
     active.rolsuper || active.rolbypassrls || active.rolcreaterole || active.rolcreatedb) {
     throw new Error('Dedicated restricted operator role required')
   }
-  if (!login || login.rolsuper || login.rolbypassrls || login.rolcreaterole || login.rolcreatedb) {
+  if (!login || !login.rolcanlogin || login.rolinherit || login.rolsuper || login.rolbypassrls || login.rolcreaterole || login.rolcreatedb) {
     throw new Error('Privileged operator login forbidden')
   }
 }
