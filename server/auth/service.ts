@@ -30,7 +30,7 @@ export async function createAuthentication(input: AuthConfig, mail?: AuthMailTra
   for (const value of [config.authDatabaseUrl, config.domainDatabaseUrl]) {
     assertSecureDatabaseUrl(value)
   }
-  const identityClient = postgres(config.authDatabaseUrl, { max: 2, prepare: false, connect_timeout: 5, idle_timeout: 20 })
+  const identityClient = postgres(config.authDatabaseUrl, { max: 2, prepare: false, connect_timeout: 5, idle_timeout: 20, onconnect: async connection => { await connection`set role auth_runtime` } })
   const domain = createDomainDatabase(config.domainDatabaseUrl)
   const db = drizzle(identityClient, { schema: identity })
   try {
