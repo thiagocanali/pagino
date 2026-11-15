@@ -4,7 +4,7 @@ import { assertSecureDatabaseUrl } from '../db/connection-security'
 import { symmetricEncrypt, symmetricDecrypt } from 'better-auth/crypto'
 import type { AuthMailTransport } from '../auth/mail'
 import { normalizeProvisionInput } from '../../shared/schemas/provisioning'
-import { assertRestrictedOperator } from './operator-roles'
+import { assertRestrictedOperator, parseRole } from './operator-roles'
 
 /**
  * Offline operator-only service. Never import from a public Nitro endpoint.
@@ -23,12 +23,7 @@ export async function provisionInstitution(
   try {
     const [role] = await client`select current_user as name, rolsuper, rolbypassrls, rolcreaterole, rolcreatedb, rolcanlogin from pg_roles where rolname = current_user`
     const [session] = await client`select session_user as name, rolsuper, rolbypassrls, rolcreaterole, rolcreatedb from pg_roles where rolname = session_user`
-    const asRole = (row: Record<string, unknown> | undefined) => row && ({
-      name: String(row.name), rolsuper: row.rolsuper !== false, rolbypassrls: row.rolbypassrls !== false,
-      rolcreaterole: row.rolcreaterole !== false, rolcreatedb: row.rolcreatedb !== false,
-      rolcanlogin: row.rolcanlogin !== false,
-    })
-    assertRestrictedOperator(asRole(role), asRole(session))
+    assertRestrictedOperator(parseRole(role), parseRole(session))
     const receipt = await client.begin(async tx => {
       // Serialize retries and avoid leaking a newly generated token on conflict.
       await tx`select pg_advisory_xact_lock(hashtextextended(${data.idempotencyKey}, 0))`
