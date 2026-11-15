@@ -70,6 +70,6 @@ A senha da role não foi definida. Para habilitar a conexão operacional, uma cr
 
 ## Logins isolados dos runtimes — migration 0006
 
-A migration `0006_runtime_logins.sql` cria `app_runtime_login` e `auth_runtime_login` como LOGIN + NOINHERIT, sem privilégios elevados, cada um membro somente da respectiva role NOLOGIN. Os pools Postgres executam `SET ROLE app_runtime` ou `SET ROLE auth_runtime` em **cada conexão aberta** via `onconnect`, para não depender de estado de uma conexão específica do pool. Os URLs em `.env.example` agora indicam os logins dedicados.
+A migration `0006_runtime_logins.sql` cria `app_runtime_login` e `auth_runtime_login` como LOGIN + NOINHERIT, sem privilégios elevados, cada um membro somente da respectiva role NOLOGIN. Os pools Postgres usam o parâmetro de startup `connection.options` (`-c role=app_runtime` / `-c role=auth_runtime`), aplicado pelo PostgreSQL a **cada conexão** aberta, inclusive após reconexões. A opção `onconnect` foi removida porque não faz parte da API tipada de Postgres.js usada no projeto. O worker usa o mesmo mecanismo para `provision_operator`, preservando `session_user` como o login dedicado. Os URLs em `.env.example` agora indicam os logins dedicados.
 
 A migration foi aplicada manualmente na branch Neon isolada `br-icy-king-b6kbstg3`; consulta de catálogo confirmou ambos os logins NOINHERIT, sem privilégios elevados, e membership SET apenas para o runtime correspondente. As senhas não foram definidas. Configuração de senha e secrets de ambiente continuam sendo intervenção externa, fora do Git.
