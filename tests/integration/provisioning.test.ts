@@ -53,6 +53,19 @@ describe('atomic initial owner acceptance', () => {
     expect(privileges).toMatchObject({ can_create_membership: false, can_accept: false })
   })
 
+  it('keeps runtime logins NOINHERIT and grants only SET ROLE to their runtime identities', async () => {
+    const [logins] = await db`
+      select
+        (select rolcanlogin and not rolinherit and not rolsuper and not rolcreatedb and not rolcreaterole and not rolbypassrls from pg_roles where rolname = 'app_runtime_login') as app_login_safe,
+        (select rolcanlogin and not rolinherit and not rolsuper and not rolcreatedb and not rolcreaterole and not rolbypassrls from pg_roles where rolname = 'auth_runtime_login') as auth_login_safe,
+        pg_has_role('app_runtime_login', 'app_runtime', 'SET') as app_can_set,
+        pg_has_role('auth_runtime_login', 'auth_runtime', 'SET') as auth_can_set,
+        pg_has_role('app_runtime_login', 'auth_runtime', 'MEMBER') as app_is_auth_member,
+        pg_has_role('auth_runtime_login', 'app_runtime', 'MEMBER') as auth_is_app_member
+    `
+    expect(logins).toMatchObject({ app_login_safe: true, auth_login_safe: true, app_can_set: true, auth_can_set: true, app_is_auth_member: false, auth_is_app_member: false })
+  })
+
   it('provisions an institution atomically under the restricted operator role', async () => {
     const slug = 'operator-' + randomUUID()
     const key = randomUUID()
