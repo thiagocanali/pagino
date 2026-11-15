@@ -20,8 +20,8 @@ export async function provisionInstitution(
   assertSecureDatabaseUrl(options.databaseUrl)
   const client = postgres(options.databaseUrl, { max: 1, prepare: false, connect_timeout: 5 })
   try {
-    const [role] = await client`select current_user as name, rolsuper, rolbypassrls, rolcreaterole from pg_roles where rolname = current_user`
-    if (!role || role.name !== 'provision_operator' || role.rolsuper || role.rolbypassrls || role.rolcreaterole) throw new Error('Dedicated restricted operator role required')
+    const [role] = await client`select current_user as name, rolsuper, rolbypassrls, rolcreaterole, rolcreatedb, rolcanlogin from pg_roles where rolname = current_user`
+    if (!role || role.name !== 'provision_operator' || role.rolsuper || role.rolbypassrls || role.rolcreaterole || role.rolcreatedb || role.rolcanlogin) throw new Error('Dedicated restricted operator role required')
     const receipt = await client.begin(async tx => {
       // Serialize retries and avoid leaking a newly generated token on conflict.
       await tx`select pg_advisory_xact_lock(hashtextextended(${data.idempotencyKey}, 0))`
