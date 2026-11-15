@@ -35,10 +35,19 @@ export async function createAuthentication(input: AuthConfig, mail?: AuthMailTra
   const db = drizzle(identityClient, { schema: identity })
   try {
     for (const [client, expected] of [[db, 'auth_runtime'], [domain.db, 'app_runtime']] as const) {
-      const query = sql`select current_user as name, rolsuper, rolbypassrls, rolcreaterole, rolcreatedb from pg_roles where rolname = current_user`
+      const query = sql`select current_user as name, session_user as login_name,
+        active.rolsuper, active.rolbypassrls, active.rolcreaterole, active.rolcreatedb,
+        login.rolcanlogin as login_can_login, login.rolinherit as login_inherit,
+        login.rolsuper as login_super, login.rolbypassrls as login_bypassrls,
+        login.rolcreaterole as login_createrole, login.rolcreatedb as login_createdb
+        from pg_roles active, pg_roles login
+        where active.rolname = current_user and login.rolname = session_user`
       const rows = await client.execute(query)
       const row = rows[0]
-      if (!row || row.name !== expected || row.rolsuper || row.rolbypassrls || row.rolcreaterole || row.rolcreatedb) throw new Error('Restricted database role required')
+      if (!row || row.name !== expected || row.login_name !== `${expected}_login` ||
+        row.rolsuper || row.rolbypassrls || row.rolcreaterole || row.rolcreatedb ||
+        !row.login_can_login || row.login_inherit || row.login_super || row.login_bypassrls ||
+        row.login_createrole || row.login_createdb) throw new Error('Restricted database role required')
     }
     const deliver = async (recipient: { id: string; email: string }, native: string, purpose: 'reset' | 'verify', correlationId: string) => {
       if (!mail) throw new Error('Mail transport unavailable')
