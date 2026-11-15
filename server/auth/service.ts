@@ -8,6 +8,7 @@ import { drizzle } from 'drizzle-orm/postgres-js'
 import { and, eq, isNull, sql } from 'drizzle-orm'
 import postgres from 'postgres'
 import * as identity from '../db/auth-schema'
+import { assertSecureDatabaseUrl } from '../db/connection-security'
 import { memberships, institutions, pages, auditLogs } from '../db/schema'
 import { createDomainDatabase, withTenant } from '../db/tenant'
 import { can, isRole, type Permission } from '../../shared/auth/permissions'
@@ -27,7 +28,7 @@ export async function createAuthentication(input: AuthConfig, mail?: AuthMailTra
   const base = new URL(config.authBaseUrl)
   if (base.origin !== config.authBaseUrl || base.username || base.password || (base.protocol !== 'https:' && !(base.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(base.hostname)))) throw new Error('Invalid authentication origin')
   for (const value of [config.authDatabaseUrl, config.domainDatabaseUrl]) {
-    if (!['postgres:', 'postgresql:'].includes(new URL(value).protocol)) throw new Error('Invalid database protocol')
+    assertSecureDatabaseUrl(value)
   }
   const identityClient = postgres(config.authDatabaseUrl, { max: 2, prepare: false, connect_timeout: 5, idle_timeout: 20 })
   const domain = createDomainDatabase(config.domainDatabaseUrl)
