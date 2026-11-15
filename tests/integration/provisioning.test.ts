@@ -133,6 +133,14 @@ describe('atomic initial owner acceptance', () => {
     expect(count?.total).toBe(0)
   })
 
+  it('rejects invalid and expired token digests without consuming the invitation', async () => {
+    for (const invalid of ['', '0'.repeat(63), 'G'.repeat(64), '0'.repeat(65)]) {
+      await expect(db`select pagino.accept_initial_owner_invitation(${owner}, ${invalid})`).rejects.toThrow()
+    }
+    const [invite] = await db`select used_at from pagino.initial_owner_invitations where token_hash = ${digest}`
+    expect(invite?.used_at).toBeNull()
+  })
+
   it('rejects the wrong verified recipient and preserves the invitation', async () => {
     await expect(db`select pagino.accept_initial_owner_invitation(${wrong},${digest})`).rejects.toThrow()
     const [invite] = await db`select used_at from pagino.initial_owner_invitations where token_hash=${digest}`
