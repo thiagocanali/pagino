@@ -65,3 +65,12 @@ Próxima entrega 04-C: provisionamento assistido e convite do primeiro owner. O 
 ### 04-C — validação transacional do operador (15/11/2026)
 
 Os testes de integração adicionais exercitam `SET LOCAL ROLE provision_operator` em PostgreSQL descartável, criando instituição, site, convite pendente, chave de idempotência e evento de auditoria na mesma transação. Um segundo teste força a rejeição de auditoria pela policy RLS e exige rollback da instituição e do site. Isso **não** configura credencial operacional nem habilita o serviço offline: a role permanece `NOLOGIN` e a delegação controlada ainda precisa ser implementada e revisada. Evidência dos testes depende do CI do commit que os contém.
+
+
+### Política de deploy econômico — Vercel (15/11/2026)
+
+- **Inspeção direta:** projeto Vercel `pagino` (`prj_8C845XPhi7RkURdCHPzV7Oi8nVqc`), com 3 deployments retornados: dois de produção e um preview antigo; nenhum deployment encontrado para `feat/task-04c-provisioning`. O último de produção está `READY`, mas isso não valida serviços externos.
+- **Controle existente:** `vercel.json` contém `git.deploymentEnabled: false`; manter a integração Git sem deploy automático enquanto o projeto não estiver pronto. Não ativar preview a cada commit, nem mudar configurações de produção para economizar cota.
+- **CI como gate:** `.github/workflows/ci.yml` executa lint, typecheck, unidade, PostgreSQL descartável, builds Nuxt/Vercel e Playwright. A execução `43742809039` passou no SHA `d715945`. Commits intermediários podem cancelar jobs anteriores por `concurrency.cancel-in-progress`; agrupar mudanças coerentes antes de push reduz desperdício de CI.
+- **Política operacional:** fazer commits locais agrupados e push por conjunto validável; reservar previews manuais e autorizados para testes que dependam da hospedagem, preferencialmente após CI verde. Nunca repetir deploy quando houver bloqueio de cota; continuar desenvolvimento/testes sem Vercel.
+- **Limite da conclusão:** a inspeção de deployments mostra que esta branch não gerou previews recentes; não demonstra que outros projetos da conta não estejam consumindo a cota. Revisar a configuração Git Deployment por branch/ambiente no painel antes de qualquer futura ativação, sem alterar produção ou proteções.
