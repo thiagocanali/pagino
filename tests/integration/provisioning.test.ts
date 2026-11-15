@@ -44,6 +44,15 @@ describe('atomic initial owner acceptance', () => {
     })
   })
 
+  it('delegates SET ROLE only to a non-inheriting, unprivileged login', async () => {
+    const [login] = await db`select rolcanlogin, rolinherit, rolsuper, rolbypassrls, rolcreaterole, rolcreatedb from pg_roles where rolname = 'provision_operator_login'`
+    expect(login).toMatchObject({ rolcanlogin: true, rolinherit: false, rolsuper: false, rolbypassrls: false, rolcreaterole: false, rolcreatedb: false })
+    const [membership] = await db`select pg_has_role('provision_operator_login', 'provision_operator', 'MEMBER') as member, pg_has_role('provision_operator_login', 'provision_operator', 'SET') as can_set`
+    expect(membership).toMatchObject({ member: true, can_set: true })
+    const [privileges] = await db`select has_table_privilege('provision_operator_login', 'pagino.memberships', 'INSERT') as can_create_membership, has_function_privilege('provision_operator_login', 'pagino.accept_initial_owner_invitation(text,text)', 'EXECUTE') as can_accept`
+    expect(privileges).toMatchObject({ can_create_membership: false, can_accept: false })
+  })
+
   it('provisions an institution atomically under the restricted operator role', async () => {
     const slug = 'operator-' + randomUUID()
     const key = randomUUID()
