@@ -55,17 +55,18 @@ Próxima entrega 04-C: provisionamento assistido e convite do primeiro owner. O 
 
 ## 04-C — estado verificável e ordem de desbloqueio (15/11/2026)
 
-- **CI confirmado:** GitHub Actions run `43508060910` verde no commit `91fbbb5`, incluindo PostgreSQL descartável e Playwright. Commits posteriores exigem nova validação.
-- **Implementado:** schema/migration do convite inicial, idempotência e auditoria operacional, função SQL transacional testada apenas com privilégio de migração, testes de limites e permissões.
-- **Bloqueado por segurança:** endpoint HTTP de aceite responde 503; cadastro público Better Auth permanece desligado. A função `SECURITY DEFINER` não recebe `EXECUTE` das roles de runtime. Não divulgar o fluxo como disponível.
-- **Bloqueado operacionalmente:** `provision_operator` é `NOLOGIN`; o serviço offline exige `current_user=provision_operator`. Antes de executá-lo, definir e testar um mecanismo explícito de delegação `SET ROLE` a partir de credencial operacional isolada, com privilégios mínimos, sem reutilizar a credencial de migração ou o runtime. Nenhuma credencial operacional foi provisionada.
-- **Sequência P0:** (1) implementar cadastro Better Auth vinculado a convite e verificação de e-mail sem signup aberto; (2) projetar execução de aceite com identidade DB-verificável e sem `user_id` arbitrário; (3) exercitar SQL direto com `app_runtime` e `auth_runtime`, concorrência, replay, expiração e falha de auditoria; (4) concluir CLI offline, rotação/reenvio e recuperação idempotente; (5) E2E ponta a ponta e revisão de segurança.
-- **Gates externos:** ambiente Supabase exclusivo do Pagino, transporte real de e-mail, configuração operacional e autorização de preview/deploy permanecem pendentes.
+- **CI histórica:** run `43508060910` verde no commit `91fbbb5`; isso valida somente aquele SHA. Os commits recentes da branch exigem CI verde própria.
+- **Implementado na branch:** migrations 0004–0006, schema do convite inicial, idempotência e auditoria operacional, função SQL transacional, role de operador delegada, logins NOINHERIT separados para app/auth, validação de `current_user` e `session_user`, e testes de integração para privilégios.
+- **Neon isolado:** migrations 0000–0006 aplicadas na branch não padrão `pagino-task-04c-validation`; catálogo confirmou RLS/FORCE RLS, grants restritos e atributos dos logins. Nenhuma migration foi aplicada na branch principal.
+- **Bloqueado por segurança:** endpoint HTTP de aceite responde 503; cadastro público Better Auth permanece desligado. A função `SECURITY DEFINER` não recebe `EXECUTE` das roles de runtime. A função SQL atual ainda recebe user ID como argumento; falta prova de identidade verificável pelo banco, sem aceitar ID arbitrário.
+- **Bloqueado operacionalmente:** os logins `app_runtime_login`, `auth_runtime_login` e `provision_operator_login` foram criados apenas na branch Neon isolada. As senhas e secrets de execução não foram configurados; não reutilizar credenciais de migração nem outros produtos.
+- **Correção em progresso:** Postgres.js recebe a role assumida pelo parâmetro de startup `connection: { role: 'app_runtime' | 'auth_runtime' | 'provision_operator' }`. A forma anterior com `connection.options` não aplicava a role corretamente; o CI encontrou a falha de permissão de schema e a implementação foi corrigida. A validação final desse ajuste está pendente de CI.
+- **Sequência P0:** (1) fechar CI completa, incluindo E2E auth; (2) projetar execução de aceite com identidade DB-verificável e sem `user_id` arbitrário; (3) exercitar SQL direto com logins dedicados, concorrência, replay, expiração e falha de auditoria; (4) concluir CLI offline, rotação/reenvio e recuperação idempotente; (5) E2E ponta a ponta e revisão de segurança.
+- **Gates externos:** configurar credenciais e secrets no Neon por procedimento seguro; transporte real de e-mail, homologação Vercel e autorização de preview/deploy permanecem pendentes.
 
 ### 04-C — validação transacional do operador (15/11/2026)
 
-Os testes de integração adicionais exercitam `SET LOCAL ROLE provision_operator` em PostgreSQL descartável, criando instituição, site, convite pendente, chave de idempotência e evento de auditoria na mesma transação. Um segundo teste força a rejeição de auditoria pela policy RLS e exige rollback da instituição e do site. Isso **não** configura credencial operacional nem habilita o serviço offline: a role permanece `NOLOGIN` e a delegação controlada ainda precisa ser implementada e revisada. Evidência dos testes depende do CI do commit que os contém.
-
+Os testes de integração exercitam a role delegada em PostgreSQL descartável, criando instituição, site, convite pendente, chave de idempotência e evento de auditoria na mesma transação. Um teste adicional força rejeição da auditoria pela policy RLS e exige rollback da instituição e do site. Isso não configura credencial operacional nem habilita o aceite do convite.
 
 ### Política de deploy econômico — Vercel (15/11/2026)
 
