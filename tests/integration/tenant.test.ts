@@ -33,10 +33,10 @@ beforeAll(async () => {
   await migrate(adminDb, { migrationsFolder: 'migrations' }) // Applying the same migration set again is a no-op.
   const rolePassword = randomBytes(24).toString('hex')
   // Random hexadecimal only, not user-controlled; PostgreSQL utility statements do not accept bind parameters here.
-  await admin.unsafe(`alter role app_runtime login password '${rolePassword}'`).catch(() => { throw new Error('Test role bootstrap failed') })
-  await admin.unsafe(`alter role auth_runtime login password '${rolePassword}'`).catch(() => { throw new Error('Test auth role bootstrap failed') })
+  await admin.unsafe(`alter role app_runtime_login login password '${rolePassword}'`).catch(() => { throw new Error('Test role bootstrap failed') })
+  await admin.unsafe(`alter role auth_runtime_login login password '${rolePassword}'`).catch(() => { throw new Error('Test auth role bootstrap failed') })
   const runtimeURL = new URL(connection!)
-  runtimeURL.username = 'app_runtime'; runtimeURL.password = rolePassword
+  runtimeURL.username = 'app_runtime_login'; runtimeURL.password = rolePassword
   runtime = createDomainDatabase(runtimeURL.href)
   runtimeURL.username = 'auth_runtime'
   identityClient = postgres(runtimeURL.href, { max: 1, prepare: false })
