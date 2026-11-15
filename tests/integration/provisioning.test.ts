@@ -44,6 +44,20 @@ describe('atomic initial owner acceptance', () => {
     })
   })
 
+  it('denies SECURITY DEFINER acceptance to every non-privileged runtime role', async () => {
+    for (const role of ['app_runtime', 'auth_runtime', 'public_reader', 'provision_operator']) {
+      const [privilege] = await db`select has_function_privilege(${role}, 'pagino.accept_initial_owner_invitation(text,text)', 'EXECUTE') as allowed`
+      expect(privilege?.allowed, role).toBe(false)
+    }
+    // Execute under the real database role, not only inspect the grant catalog.
+    await expect(db.begin(async (tx) => {
+      await tx`set local role auth_runtime`
+      await tx`select pagino.accept_initial_owner_invitation(${owner}, ${digest})`
+    })).rejects.toThrow()
+    const [invite] = await db`select used_at from pagino.initial_owner_invitations where token_hash = ${digest}`
+    expect(invite?.used_at).toBeNull()
+  })
+
   it('rejects the wrong verified recipient and preserves the invitation', async () => {
     await expect(db`select pagino.accept_initial_owner_invitation(${wrong},${digest})`).rejects.toThrow()
     const [invite] = await db`select used_at from pagino.initial_owner_invitations where token_hash=${digest}`
