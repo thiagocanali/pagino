@@ -113,6 +113,16 @@ describe('atomic initial owner acceptance', () => {
     expect(invite?.used_at).toBeNull()
   })
 
+  it('enforces one invitation per institution and unique token hashes', async () => {
+    const duplicateToken = createHash('sha256').update(randomBytes(32)).digest('hex')
+    await expect(db`insert into pagino.initial_owner_invitations (institution_id,recipient_email,token_hash,encrypted_token,expires_at) values (${institution},'invite-owner@example.test',${duplicateToken},'encrypted',now()+interval '1 hour')`).rejects.toThrow()
+    const other = randomUUID()
+    await db`insert into pagino.institutions (id,name,slug) values (${other},'Duplicate Token Tenant',${'duplicate-token-' + other})`
+    await expect(db`insert into pagino.initial_owner_invitations (institution_id,recipient_email,token_hash,encrypted_token,expires_at) values (${other},'invite-owner@example.test',${digest},'encrypted',now()+interval '1 hour')`).rejects.toThrow()
+    const [count] = await db`select count(*)::int as total from pagino.initial_owner_invitations where institution_id = ${other}`
+    expect(count?.total).toBe(0)
+  })
+
   it('rejects the wrong verified recipient and preserves the invitation', async () => {
     await expect(db`select pagino.accept_initial_owner_invitation(${wrong},${digest})`).rejects.toThrow()
     const [invite] = await db`select used_at from pagino.initial_owner_invitations where token_hash=${digest}`
