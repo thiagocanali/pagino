@@ -39,7 +39,7 @@ beforeAll(async () => {
   runtimeURL.username = 'app_runtime_login'; runtimeURL.password = rolePassword
   runtime = createDomainDatabase(runtimeURL.href)
   runtimeURL.username = 'auth_runtime_login'
-  identityClient = postgres(runtimeURL.href, { max: 1, prepare: false })
+  identityClient = postgres(runtimeURL.href, { max: 1, prepare: false, connection: { role: 'auth_runtime' } })
   identityDb = drizzle(identityClient, { schema: authSchema })
   await adminDb.insert(authSchema.user).values([
     { id: userA, name: 'Owner A', email: 'owner-a@example.test', emailVerified: true },
