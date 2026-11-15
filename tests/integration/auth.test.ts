@@ -39,12 +39,12 @@ async function login(ip: string) {
 beforeAll(async () => {
   await migrate(db, { migrationsFolder: 'migrations' })
   const rolePassword = randomBytes(24).toString('hex')
-  await admin.unsafe(`alter role auth_runtime login password '${rolePassword}'`).catch(() => { throw new Error('Role setup failed') })
-  await admin.unsafe(`alter role app_runtime login password '${rolePassword}'`).catch(() => { throw new Error('Role setup failed') })
+  await admin.unsafe(`alter role auth_runtime_login login password '${rolePassword}'`).catch(() => { throw new Error('Role setup failed') })
+  await admin.unsafe(`alter role app_runtime_login login password '${rolePassword}'`).catch(() => { throw new Error('Role setup failed') })
   const url = new URL(connection!)
-  url.username = 'auth_runtime'; url.password = rolePassword
+  url.username = 'auth_runtime_login'; url.password = rolePassword
   const authDatabaseUrl = url.href
-  url.username = 'app_runtime'
+  url.username = 'app_runtime_login'
   config = { authSecret: randomBytes(32).toString('hex'), authBaseUrl: origin, authDatabaseUrl, domainDatabaseUrl: url.href }
   collector = await startLocalMailCollector()
   runtime = await createAuthentication(config, localMailTransport(origin, collector.url, collector.secret))
