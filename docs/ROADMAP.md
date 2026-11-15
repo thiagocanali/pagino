@@ -52,3 +52,12 @@ Se um gate externo bloquear um incremento, documentar a ação necessária e exe
 Recuperação/verificação com transporte HTTP local real, coletor CLI privado, links opacos e consumo transacional. Senha/sessões e todos os links irmãos são atualizados atomicamente; login usa o mesmo lock de usuário para impedir que uma corrida preserve sessão com senha antiga. Suíte local: 95 testes (39 unidade, 34 PG, 22 navegador), lint/tipos e builds.
 
 Próxima entrega 04-C: provisionamento assistido e convite do primeiro owner. O incremento 04-B não configura entrega externa: provider real, fila/retries operacionais, retenção/purga e homologação continuam gates antes do piloto. Respostas genéricas e piso de 500 ms reduzem enumeração, sem promessa de latência constante sob falha de transporte; transporte externo requer revisão própria.
+
+## 04-C — estado verificável e ordem de desbloqueio (15/11/2026)
+
+- **CI confirmado:** GitHub Actions run `43508060910` verde no commit `91fbbb5`, incluindo PostgreSQL descartável e Playwright. Commits posteriores exigem nova validação.
+- **Implementado:** schema/migration do convite inicial, idempotência e auditoria operacional, função SQL transacional testada apenas com privilégio de migração, testes de limites e permissões.
+- **Bloqueado por segurança:** endpoint HTTP de aceite responde 503; cadastro público Better Auth permanece desligado. A função `SECURITY DEFINER` não recebe `EXECUTE` das roles de runtime. Não divulgar o fluxo como disponível.
+- **Bloqueado operacionalmente:** `provision_operator` é `NOLOGIN`; o serviço offline exige `current_user=provision_operator`. Antes de executá-lo, definir e testar um mecanismo explícito de delegação `SET ROLE` a partir de credencial operacional isolada, com privilégios mínimos, sem reutilizar a credencial de migração ou o runtime. Nenhuma credencial operacional foi provisionada.
+- **Sequência P0:** (1) implementar cadastro Better Auth vinculado a convite e verificação de e-mail sem signup aberto; (2) projetar execução de aceite com identidade DB-verificável e sem `user_id` arbitrário; (3) exercitar SQL direto com `app_runtime` e `auth_runtime`, concorrência, replay, expiração e falha de auditoria; (4) concluir CLI offline, rotação/reenvio e recuperação idempotente; (5) E2E ponta a ponta e revisão de segurança.
+- **Gates externos:** ambiente Supabase exclusivo do Pagino, transporte real de e-mail, configuração operacional e autorização de preview/deploy permanecem pendentes.
