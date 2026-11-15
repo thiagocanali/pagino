@@ -22,6 +22,8 @@ export async function provisionInstitution(
   try {
     const [role] = await client`select current_user as name, rolsuper, rolbypassrls, rolcreaterole, rolcreatedb, rolcanlogin from pg_roles where rolname = current_user`
     if (!role || role.name !== 'provision_operator' || role.rolsuper || role.rolbypassrls || role.rolcreaterole || role.rolcreatedb || role.rolcanlogin) throw new Error('Dedicated restricted operator role required')
+    const [session] = await client`select session_user as name, rolsuper, rolbypassrls, rolcreaterole, rolcreatedb from pg_roles where rolname = session_user`
+    if (!session || session.rolsuper || session.rolbypassrls || session.rolcreaterole || session.rolcreatedb) throw new Error('Privileged operator login forbidden')
     const receipt = await client.begin(async tx => {
       // Serialize retries and avoid leaking a newly generated token on conflict.
       await tx`select pg_advisory_xact_lock(hashtextextended(${data.idempotencyKey}, 0))`
