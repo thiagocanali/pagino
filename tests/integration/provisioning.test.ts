@@ -66,6 +66,15 @@ describe('atomic initial owner acceptance', () => {
     expect(audit?.action).toBe('institution.provisioned')
   })
 
+  it('cannot create an owner membership while acting as the provision operator', async () => {
+    await expect(db.begin(async (tx) => {
+      await tx`set local role provision_operator`
+      await tx`insert into pagino.memberships (institution_id, user_id, role, status) values (${institution}, ${owner}, 'owner', 'active')`
+    })).rejects.toThrow()
+    const [count] = await db`select count(*)::int as total from pagino.memberships where institution_id = ${institution} and user_id = ${owner}`
+    expect(count?.total).toBe(0)
+  })
+
   it('rolls back institution and site when the operator audit write fails', async () => {
     const slug = 'operator-rollback-' + randomUUID()
     await expect(db.begin(async (tx) => {
