@@ -21,6 +21,7 @@ export async function provisionInstitution(
   assertSecureDatabaseUrl(options.databaseUrl)
   const client = postgres(options.databaseUrl, { max: 1, prepare: false, connect_timeout: 5 })
   try {
+    await client`set role provision_operator`
     const [role] = await client`select current_user as name, rolsuper, rolbypassrls, rolcreaterole, rolcreatedb, rolcanlogin from pg_roles where rolname = current_user`
     const [session] = await client`select session_user as name, rolsuper, rolbypassrls, rolcreaterole, rolcreatedb from pg_roles where rolname = session_user`
     assertRestrictedOperator(parseRole(role), parseRole(session))
