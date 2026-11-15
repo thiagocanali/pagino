@@ -123,6 +123,16 @@ describe('atomic initial owner acceptance', () => {
     expect(count?.total).toBe(0)
   })
 
+  it('rejects invalid delivery states and non-normalized recipient addresses', async () => {
+    const tenant = randomUUID()
+    await db`insert into pagino.institutions (id,name,slug) values (${tenant},'Invalid Delivery Tenant',${'invalid-delivery-' + tenant})`
+    const hash = createHash('sha256').update(randomBytes(32)).digest('hex')
+    await expect(db`insert into pagino.initial_owner_invitations (institution_id,recipient_email,token_hash,encrypted_token,expires_at,delivery_status) values (${tenant},'invite-owner@example.test',${hash},'encrypted',now()+interval '1 hour','accepted')`).rejects.toThrow()
+    await expect(db`insert into pagino.initial_owner_invitations (institution_id,recipient_email,token_hash,encrypted_token,expires_at) values (${tenant},'INVITE-OWNER@example.test',${hash},'encrypted',now()+interval '1 hour')`).rejects.toThrow()
+    const [count] = await db`select count(*)::int as total from pagino.initial_owner_invitations where institution_id = ${tenant}`
+    expect(count?.total).toBe(0)
+  })
+
   it('rejects the wrong verified recipient and preserves the invitation', async () => {
     await expect(db`select pagino.accept_initial_owner_invitation(${wrong},${digest})`).rejects.toThrow()
     const [invite] = await db`select used_at from pagino.initial_owner_invitations where token_hash=${digest}`
