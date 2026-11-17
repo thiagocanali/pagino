@@ -265,6 +265,26 @@ describe('atomic initial owner acceptance', () => {
     expect(after?.total).toBe(1)
   })
 
+  it('serializes concurrent redemption of the same invitation without duplicate owners or audits', async () => {
+    const tenant = randomUUID()
+    const concurrentHash = createHash('sha256').update(randomBytes(32)).digest('hex')
+    await db`insert into pagino.institutions (id,name,slug) values (${tenant},'Concurrent Tenant',${'concurrent-' + tenant})`
+    await db`insert into pagino.initial_owner_invitations (institution_id,recipient_email,token_hash,encrypted_token,expires_at,delivery_status) values (${tenant},'invite-owner@example.test',${concurrentHash},'encrypted',now()+interval '1 hour','sent')`
+    const attempts = await Promise.allSettled([
+      db`select pagino.accept_initial_owner_invitation(${owner},${concurrentHash}) as id`,
+      db`select pagino.accept_initial_owner_invitation(${owner},${concurrentHash}) as id`,
+    ])
+    expect(attempts.filter(attempt => attempt.status === 'fulfilled')).toHaveLength(1)
+    expect(attempts.filter(attempt => attempt.status === 'rejected')).toHaveLength(1)
+    const [membership] = await db`select count(*)::int as total from pagino.memberships where institution_id=${tenant} and user_id=${owner} and role='owner'`
+    const [audit] = await db`select count(*)::int as total from pagino.audit_logs where institution_id=${tenant} and action='institution.owner_accepted'`
+    const [invitation] = await db`select used_at, encrypted_token from pagino.initial_owner_invitations where institution_id=${tenant}`
+    expect(membership?.total).toBe(1)
+    expect(audit?.total).toBe(1)
+    expect(invitation?.used_at).not.toBeNull()
+    expect(invitation?.encrypted_token).toBe('')
+  })
+
   it('rejects expired tokens without creating memberships', async () => {
     const other = randomUUID()
     const otherToken = createHash('sha256').update(randomBytes(32)).digest('hex')
