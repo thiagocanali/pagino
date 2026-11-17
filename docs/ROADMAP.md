@@ -89,3 +89,11 @@ Os testes de integração exercitam a role delegada em PostgreSQL descartável, 
 | P1 | CI do lote final | Pendente | Verificar run do SHA final, corrigir eventuais falhas |
 
 Próxima execução: acompanhar CI do HEAD e, depois, ensaiar migrations no Neon isolado. A PR #12 continua draft, sem deploy e sem merge.
+
+### 04-C — testes transacionais adicionais (16/11/2026)
+
+- CI `43993461644` verde no SHA `70db1bb`, incluindo check, banco descartável, E2E de autenticação e build Vercel. Não representa aprovação dos commits posteriores.
+- Testes de integração novos exercitam **duas tentativas concorrentes** de aceite do mesmo token: exatamente uma pode ter sucesso, com uma única membership e auditoria; o token cifrado deve ser limpo.
+- Teste de conflito de membership existente exige rollback completo: preservar role anterior, token não consumido e nenhum evento de aceite.
+- Esses testes validam a função SQL apenas no banco descartável. **Não autorizam habilitar o endpoint público**: falta vincular de forma não falsificável a identidade autenticada à execução privilegiada.
+- Próximas tarefas P0: (1) confirmar CI do HEAD; (2) definir executor de aceite restrito, com identidade verificável pelo banco e sem user ID controlado pelo chamador; (3) criar cadastro inicial vinculado a convite, mantendo signup público desabilitado; (4) E2E convite→verificação→aceite; (5) homologar Neon com secrets separados, sem produção.
