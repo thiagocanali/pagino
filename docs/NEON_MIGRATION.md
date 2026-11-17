@@ -70,6 +70,12 @@ A senha da role não foi definida. Para habilitar a conexão operacional, uma cr
 
 ## Logins isolados dos runtimes — migration 0006
 
-A migration `0006_runtime_logins.sql` cria `app_runtime_login` e `auth_runtime_login` como LOGIN + NOINHERIT, sem privilégios elevados, cada um membro somente da respectiva role NOLOGIN. Os pools Postgres usam o parâmetro de startup `connection.options` (`-c role=app_runtime` / `-c role=auth_runtime`), aplicado pelo PostgreSQL a **cada conexão** aberta, inclusive após reconexões. A opção `onconnect` foi removida porque não faz parte da API tipada de Postgres.js usada no projeto. O worker usa o mesmo mecanismo para `provision_operator`, preservando `session_user` como o login dedicado. Os URLs em `.env.example` agora indicam os logins dedicados.
+A migration `0006_runtime_logins.sql` cria `app_runtime_login` e `auth_runtime_login` como LOGIN + NOINHERIT, sem privilégios elevados, cada um membro somente da respectiva role NOLOGIN. Os pools Postgres usam o parâmetro de startup `connection: { role: 'app_runtime' }` ou `connection: { role: 'auth_runtime' }`, aplicado pelo PostgreSQL a cada nova conexão. O worker usa `connection: { role: 'provision_operator' }`. A forma antiga `connection.options` não assumia a role esperada e foi substituída após falha reproduzida na CI. O campo `session_user` continua identificando o login dedicado. Os URLs em `.env.example` agora indicam os logins dedicados.
 
 A migration foi aplicada manualmente na branch Neon isolada `br-icy-king-b6kbstg3`; consulta de catálogo confirmou ambos os logins NOINHERIT, sem privilégios elevados, e membership SET apenas para o runtime correspondente. As senhas não foram definidas. Configuração de senha e secrets de ambiente continuam sendo intervenção externa, fora do Git.
+
+## Evidência CI — 16/11/2026
+
+- Run GitHub Actions `43754912463` aprovado no SHA `6ed5aa8`, incluindo `npm run check`, `npm run test:db`, builds Node/Vercel e Playwright E2E (geral e autenticação). Nenhum deploy foi realizado.
+- Novo endurecimento do operador exige `session_user = provision_operator_login`, além dos atributos de privilégio. Testes unitários negativos e teste de conexão PostgreSQL real foram acrescentados em commits posteriores; sua CI precisa passar antes de considerar esse novo conjunto validado.
+- A branch Neon isolada mantém o ensaio SQL; não há senha de login operacional configurada no Neon nem migration aplicada no branch principal.
