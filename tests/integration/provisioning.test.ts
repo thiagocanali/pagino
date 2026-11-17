@@ -285,6 +285,22 @@ describe('atomic initial owner acceptance', () => {
     expect(invitation?.encrypted_token).toBe('')
   })
 
+  it('rolls back invitation consumption if the recipient already has a membership', async () => {
+    const tenant = randomUUID()
+    const collisionHash = createHash('sha256').update(randomBytes(32)).digest('hex')
+    await db`insert into pagino.institutions (id,name,slug) values (${tenant},'Existing Membership Tenant',${'existing-' + tenant})`
+    await db`insert into pagino.memberships (institution_id,user_id,role,status) values (${tenant},${owner},'viewer','active')`
+    await db`insert into pagino.initial_owner_invitations (institution_id,recipient_email,token_hash,encrypted_token,expires_at,delivery_status) values (${tenant},'invite-owner@example.test',${collisionHash},'encrypted',now()+interval '1 hour','sent')`
+    await expect(db`select pagino.accept_initial_owner_invitation(${owner},${collisionHash})`).rejects.toThrow()
+    const [membership] = await db`select role from pagino.memberships where institution_id=${tenant} and user_id=${owner}`
+    const [invitation] = await db`select used_at,encrypted_token from pagino.initial_owner_invitations where institution_id=${tenant}`
+    const [audit] = await db`select count(*)::int as total from pagino.audit_logs where institution_id=${tenant} and action='institution.owner_accepted'`
+    expect(membership?.role).toBe('viewer')
+    expect(invitation?.used_at).toBeNull()
+    expect(invitation?.encrypted_token).toBe('encrypted')
+    expect(audit?.total).toBe(0)
+  })
+
   it('rejects expired tokens without creating memberships', async () => {
     const other = randomUUID()
     const otherToken = createHash('sha256').update(randomBytes(32)).digest('hex')
