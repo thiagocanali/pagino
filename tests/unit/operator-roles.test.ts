@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { assertRestrictedOperator, parseRole } from '../../server/provisioning/operator-roles'
 
 const operator = { name: 'provision_operator', rolcanlogin: false, rolinherit: true, rolsuper: false, rolbypassrls: false, rolcreaterole: false, rolcreatedb: false }
-const login = { ...operator, name: 'pagino_operator_login', rolcanlogin: true, rolinherit: false }
+const login = { ...operator, name: 'provision_operator_login', rolcanlogin: true, rolinherit: false }
 
 describe('operator identity checks', () => {
   it('accepts a restricted NOLOGIN operator behind a restricted login', () => {
@@ -19,6 +19,10 @@ describe('operator identity checks', () => {
   })
   it('rejects a login role that inherits privileges implicitly', () => {
     expect(() => assertRestrictedOperator(operator, { ...login, rolinherit: true })).toThrow()
+  })
+  it('rejects an unrelated restricted login even if its flags are safe', () => {
+    expect(() => assertRestrictedOperator(operator, { ...login, name: 'auth_runtime_login' })).toThrow()
+    expect(() => assertRestrictedOperator(operator, { ...login, name: 'untrusted_login' })).toThrow()
   })
   it('rejects missing login role', () => {
     expect(() => assertRestrictedOperator(operator, undefined)).toThrow()
