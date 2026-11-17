@@ -31,7 +31,7 @@ export function assertRestrictedOperator(active: Role | undefined, login: Role |
     active.rolsuper || active.rolbypassrls || active.rolcreaterole || active.rolcreatedb) {
     throw new Error('Dedicated restricted operator role required')
   }
-  if (!login || !login.rolcanlogin || login.rolinherit || login.rolsuper || login.rolbypassrls || login.rolcreaterole || login.rolcreatedb) {
+  if (!login || login.name !== 'provision_operator_login' || !login.rolcanlogin || login.rolinherit || login.rolsuper || login.rolbypassrls || login.rolcreaterole || login.rolcreatedb) {
     throw new Error('Privileged operator login forbidden')
   }
 }
