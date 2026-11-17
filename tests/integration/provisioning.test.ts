@@ -66,6 +66,27 @@ describe('atomic initial owner acceptance', () => {
     expect(logins).toMatchObject({ app_login_safe: true, auth_login_safe: true, app_can_set: true, auth_can_set: true, app_is_auth_member: false, auth_is_app_member: false })
   })
 
+  it('authenticates as the dedicated operator login and assumes only the NOLOGIN role on connection', async () => {
+    const password = randomBytes(24).toString('hex')
+    // Disposable local PostgreSQL only; no real secrets or remote roles are modified.
+    await db.unsafe(`alter role provision_operator_login password '${password}'`)
+    const restrictedUrl = new URL(url!)
+    restrictedUrl.username = 'provision_operator_login'
+    restrictedUrl.password = password
+    const operatorClient = postgres(restrictedUrl.href, {
+      max: 1, prepare: false, connection: { role: 'provision_operator' },
+    })
+    try {
+      const [identity] = await operatorClient`select current_user as active, session_user as login`
+      expect(identity).toMatchObject({ active: 'provision_operator', login: 'provision_operator_login' })
+      const [roles] = await operatorClient`select current_user = 'provision_operator' as restricted`
+      expect(roles?.restricted).toBe(true)
+      await expect(operatorClient`select * from pagino_auth."user"`).rejects.toThrow()
+      await expect(operatorClient`insert into pagino.memberships (institution_id,user_id,role,status) values (${institution},${owner},'owner','active')`).rejects.toThrow()
+    }
+    finally { await operatorClient.end() }
+  })
+
   it('provisions an institution atomically under the restricted operator role', async () => {
     const slug = 'operator-' + randomUUID()
     const key = randomUUID()
