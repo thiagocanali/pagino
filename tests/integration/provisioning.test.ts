@@ -147,6 +147,41 @@ describe('atomic initial owner acceptance', () => {
     expect(audit?.total).toBe(1)
   })
 
+  it('retries failed delivery without creating a second institution or invitation', async () => {
+    const password = randomBytes(24).toString('hex')
+    await db.unsafe(`alter role provision_operator_login password '${password}'`)
+    const operatorUrl = new URL(url!)
+    operatorUrl.username = 'provision_operator_login'
+    operatorUrl.password = password
+    const idempotencyKey = randomUUID()
+    const slug = 'delivery-retry-' + randomUUID()
+    const input = { name: 'Retry Mail Tenant', slug, ownerEmail: 'mail-retry@example.test', idempotencyKey }
+    let attempts = 0
+    const options = {
+      databaseUrl: operatorUrl.href,
+      appOrigin: 'http://localhost:3000',
+      encryptionSecret: randomBytes(32).toString('hex'),
+      mail: {
+        async send() {
+          attempts++
+          if (attempts === 1) throw new Error('Simulated transport failure')
+        },
+      },
+    }
+    await expect(provisionInstitution(options, input)).rejects.toThrow('Invitation delivery failed')
+    const [failed] = await db`select v.delivery_status from pagino.initial_owner_invitations v join pagino.institutions i on i.id = v.institution_id where i.slug = ${slug}`
+    expect(failed?.delivery_status).toBe('failed')
+    const success = await provisionInstitution(options, input)
+    expect(success.deliveryStatus).toBe('sent')
+    expect(attempts).toBe(2)
+    const [counts] = await db`
+      select (select count(*)::int from pagino.institutions where slug = ${slug}) as institutions,
+        (select count(*)::int from pagino.initial_owner_invitations where institution_id = ${success.institutionId}) as invitations,
+        (select count(*)::int from pagino.operator_audit_logs where institution_id = ${success.institutionId}) as audits
+    `
+    expect(counts).toMatchObject({ institutions: 1, invitations: 1, audits: 1 })
+  })
+
   it('provisions an institution atomically under the restricted operator role', async () => {
     const slug = 'operator-' + randomUUID()
     const key = randomUUID()
