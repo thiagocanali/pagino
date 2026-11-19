@@ -182,6 +182,38 @@ describe('atomic initial owner acceptance', () => {
     expect(counts).toMatchObject({ institutions: 1, invitations: 1, audits: 1 })
   })
 
+  it('rejects a reused idempotency key with changed tenant or recipient without sending mail', async () => {
+    const password = randomBytes(24).toString('hex')
+    await db.unsafe(`alter role provision_operator_login password '${password}'`)
+    const operatorUrl = new URL(url!)
+    operatorUrl.username = 'provision_operator_login'
+    operatorUrl.password = password
+    const idempotencyKey = randomUUID()
+    const input = { name: 'Idempotency Guard Tenant', slug: 'idempotency-' + randomUUID(), ownerEmail: 'original-guard@example.test', idempotencyKey }
+    let sent = 0
+    const options = {
+      databaseUrl: operatorUrl.href,
+      appOrigin: 'http://localhost:3000',
+      encryptionSecret: randomBytes(32).toString('hex'),
+      mail: { async send() { sent++ } },
+    }
+    const first = await provisionInstitution(options, input)
+    expect(first.deliveryStatus).toBe('sent')
+    for (const changed of [
+      { ...input, ownerEmail: 'different-guard@example.test' },
+      { ...input, name: 'Changed Tenant Name' },
+      { ...input, slug: 'different-' + randomUUID() },
+    ]) {
+      await expect(provisionInstitution(options, changed)).rejects.toThrow('Idempotency key reused with different input')
+    }
+    expect(sent).toBe(1)
+    const [counts] = await db`
+      select (select count(*)::int from pagino.provisioning_operations where idempotency_key = ${idempotencyKey}) as operations,
+        (select count(*)::int from pagino.initial_owner_invitations where institution_id = ${first.institutionId}) as invitations
+    `
+    expect(counts).toMatchObject({ operations: 1, invitations: 1 })
+  })
+
   it('provisions an institution atomically under the restricted operator role', async () => {
     const slug = 'operator-' + randomUUID()
     const key = randomUUID()
