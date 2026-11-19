@@ -24,6 +24,18 @@ export async function provisionInstitution(
     const [role] = await client`select current_user as name, rolsuper, rolbypassrls, rolcreaterole, rolcreatedb, rolcanlogin, rolinherit from pg_roles where rolname = current_user`
     const [session] = await client`select session_user as name, rolsuper, rolbypassrls, rolcreaterole, rolcreatedb, rolcanlogin, rolinherit from pg_roles where rolname = session_user`
     assertRestrictedOperator(parseRole(role), parseRole(session))
+    // A non-superuser LOGIN can still inherit unexpected privileges through role grants.
+    // Require the dedicated login to be a direct member of *only* the operator role.
+    const grants = await client`
+      select granted.rolname as name, membership.inherit_option as inherits, membership.set_option as can_set
+      from pg_auth_members membership
+      join pg_roles granted on granted.oid = membership.roleid
+      where membership.member = (select oid from pg_roles where rolname = session_user)
+    `
+    if (grants.length !== 1 || grants[0]?.name !== 'provision_operator' ||
+      grants[0]?.inherits !== false || grants[0]?.can_set !== true) {
+      throw new Error('Unexpected operator login role grants')
+    }
     const receipt = await client.begin(async tx => {
       // Serialize retries and avoid leaking a newly generated token on conflict.
       await tx`select pg_advisory_xact_lock(hashtextextended(${data.idempotencyKey}, 0))`
