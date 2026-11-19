@@ -33,9 +33,13 @@ export async function provisionInstitution(
       where membership.member = (select oid from pg_roles where rolname = session_user)
     `
     assertExclusiveOperatorGrant(grants)
+    // Hold a session-level lock across both database provisioning AND mail delivery.
+    // Transaction-only locks release before send() and permit duplicate concurrent emails.
+    // The dedicated client has max: 1, so all operations share this locked session.
+    await client`select pg_advisory_lock(hashtextextended(${data.idempotencyKey}, 0))`
+    try {
     const receipt = await client.begin(async tx => {
-      // Serialize retries and avoid leaking a newly generated token on conflict.
-      await tx`select pg_advisory_xact_lock(hashtextextended(${data.idempotencyKey}, 0))`
+      // The session lock above also serializes concurrent delivery attempts.
       const previous = await tx`
         select i.id, i.slug, i.name, v.recipient_email, v.id as invitation_id, v.encrypted_token, v.delivery_status, v.expires_at
         from pagino.provisioning_operations p
@@ -84,6 +88,10 @@ export async function provisionInstitution(
     const updated = await client`update pagino.initial_owner_invitations set delivery_status = 'sent' where id = ${receipt.invitationId} and used_at is null and delivery_status in ('pending', 'failed') returning id`
     if (updated.length !== 1) throw new Error('Invitation delivery status could not be confirmed')
     return { institutionId: receipt.id, deliveryStatus: 'sent' as const }
+    }
+    finally {
+      await client`select pg_advisory_unlock(hashtextextended(${data.idempotencyKey}, 0))`
+    }
   }
   finally { await client.end() }
 }
