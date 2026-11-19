@@ -4,7 +4,7 @@ import { assertSecureDatabaseUrl } from '../db/connection-security'
 import { symmetricEncrypt, symmetricDecrypt } from 'better-auth/crypto'
 import type { AuthMailTransport } from '../auth/mail'
 import { normalizeProvisionInput } from '../../shared/schemas/provisioning'
-import { assertRestrictedOperator, parseRole } from './operator-roles'
+import { assertRestrictedOperator, assertExclusiveOperatorGrant, parseRole } from './operator-roles'
 
 /**
  * Offline operator-only service. Never import from a public Nitro endpoint.
@@ -32,10 +32,7 @@ export async function provisionInstitution(
       join pg_roles granted on granted.oid = membership.roleid
       where membership.member = (select oid from pg_roles where rolname = session_user)
     `
-    if (grants.length !== 1 || grants[0]?.name !== 'provision_operator' ||
-      grants[0]?.inherits !== false || grants[0]?.can_set !== true) {
-      throw new Error('Unexpected operator login role grants')
-    }
+    assertExclusiveOperatorGrant(grants)
     const receipt = await client.begin(async tx => {
       // Serialize retries and avoid leaking a newly generated token on conflict.
       await tx`select pg_advisory_xact_lock(hashtextextended(${data.idempotencyKey}, 0))`
