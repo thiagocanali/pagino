@@ -27,6 +27,57 @@ beforeAll(async () => {
 afterAll(async () => { await db.end() })
 
 describe('atomic initial owner acceptance', () => {
+  it('binds acceptance to a valid database session and grants only the session entry point', async () => {
+    const [privileges] = await db`
+      select
+        has_function_privilege('invitation_acceptor', 'pagino.accept_initial_owner_invitation_for_session(text,text)', 'EXECUTE') as can_accept,
+        has_function_privilege('invitation_acceptor', 'pagino.accept_initial_owner_invitation(text,text)', 'EXECUTE') as can_accept_by_id,
+        has_table_privilege('invitation_acceptor', 'pagino_auth.session', 'SELECT') as can_read_sessions,
+        has_table_privilege('invitation_acceptor', 'pagino.memberships', 'INSERT') as can_create_memberships
+    `
+    expect(privileges).toMatchObject({
+      can_accept: true,
+      can_accept_by_id: false,
+      can_read_sessions: false,
+      can_create_memberships: false,
+    })
+    const [runtime] = await db`
+      select bool_or(has_function_privilege(role_name, 'pagino.accept_initial_owner_invitation_for_session(text,text)', 'EXECUTE')) as can_accept
+      from unnest(array['app_runtime', 'auth_runtime', 'public_reader', 'provision_operator']::text[]) as roles(role_name)
+    `
+    expect(runtime).toMatchObject({ can_accept: false })
+
+    const active = randomUUID()
+    const expired = randomUUID()
+    const other = randomUUID()
+    const rollback = new Error('Roll back session acceptance fixture')
+    await expect(db.begin(async tx => {
+      await tx`
+        insert into pagino_auth.session (id, token, user_id, expires_at, updated_at)
+        values
+          (${randomUUID()}, ${active}, ${owner}, now() + interval '1 hour', now()),
+          (${randomUUID()}, ${expired}, ${owner}, now() - interval '1 hour', now()),
+          (${randomUUID()}, ${other}, ${wrong}, now() + interval '1 hour', now())
+      `
+      await tx`set local role invitation_acceptor`
+      for (const candidate of [owner, expired, other]) {
+        await expect(tx.savepoint(sp => sp`
+          select pagino.accept_initial_owner_invitation_for_session(${candidate}, ${digest})
+        `)).rejects.toMatchObject({ code: '22023' })
+      }
+      const [accepted] = await tx`
+        select pagino.accept_initial_owner_invitation_for_session(${active}, ${digest}) as institution_id
+      `
+      expect(accepted?.institution_id).toBe(institution)
+      await tx`reset role`
+      const [membership] = await tx`
+        select user_id, role from pagino.memberships where institution_id = ${institution}
+      `
+      expect(membership).toMatchObject({ user_id: owner, role: 'owner' })
+      throw rollback
+    })).rejects.toBe(rollback)
+  })
+
   it('keeps the provisioning role non-login, non-superuser and without bypass RLS', async () => {
     const [role] = await db`select rolcanlogin, rolsuper, rolbypassrls, rolcreaterole, rolcreatedb from pg_roles where rolname = 'provision_operator'`
     expect(role).toMatchObject({ rolcanlogin: false, rolsuper: false, rolbypassrls: false, rolcreaterole: false, rolcreatedb: false })
