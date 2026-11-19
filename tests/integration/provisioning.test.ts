@@ -3,6 +3,7 @@ import { beforeAll, afterAll, describe, expect, it } from 'vitest'
 import postgres from 'postgres'
 import { drizzle } from 'drizzle-orm/postgres-js'
 import { migrate } from 'drizzle-orm/postgres-js/migrator'
+import { provisionInstitution } from '../../server/provisioning/operator'
 
 const url = process.env.PAGINO_TEST_DATABASE_URL
 if (!url || !['127.0.0.1', 'localhost'].includes(new URL(url).hostname) || new URL(url).pathname !== '/pagino_test') throw new Error('Disposable local PostgreSQL required')
@@ -110,6 +111,40 @@ describe('atomic initial owner acceptance', () => {
       await expect(operatorClient`insert into pagino.memberships (institution_id,user_id,role,status) values (${institution},${owner},'owner','active')`).rejects.toThrow()
     }
     finally { await operatorClient.end() }
+  })
+
+  it('delivers an idempotent invitation only once under concurrent operator calls', async () => {
+    const password = randomBytes(24).toString('hex')
+    await db.unsafe(`alter role provision_operator_login password '${password}'`)
+    const operatorUrl = new URL(url!)
+    operatorUrl.username = 'provision_operator_login'
+    operatorUrl.password = password
+    const idempotencyKey = randomUUID()
+    const slug = 'delivery-concurrent-' + randomUUID()
+    const input = { name: 'Concurrent Mail Tenant', slug, ownerEmail: 'mail-concurrent@example.test', idempotencyKey }
+    const delivered: string[] = []
+    const options = {
+      databaseUrl: operatorUrl.href,
+      appOrigin: 'http://localhost:3000',
+      encryptionSecret: randomBytes(32).toString('hex'),
+      mail: {
+        async send(message: { to: string; subject: string; text: string }) {
+          delivered.push(message.to)
+          await new Promise(resolve => setTimeout(resolve, 80))
+        },
+      },
+    }
+    const [first, second] = await Promise.all([
+      provisionInstitution(options, input),
+      provisionInstitution(options, input),
+    ])
+    expect(first).toEqual(second)
+    expect(first.deliveryStatus).toBe('sent')
+    expect(delivered).toEqual(['mail-concurrent@example.test'])
+    const [institution] = await db`select count(*)::int as total from pagino.institutions where slug = ${slug}`
+    const [audit] = await db`select count(*)::int as total from pagino.operator_audit_logs where action = 'institution.provisioned' and institution_id = ${first.institutionId}`
+    expect(institution?.total).toBe(1)
+    expect(audit?.total).toBe(1)
   })
 
   it('provisions an institution atomically under the restricted operator role', async () => {
