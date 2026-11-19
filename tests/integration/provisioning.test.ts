@@ -232,7 +232,7 @@ describe('atomic initial owner acceptance', () => {
     }
     await expect(provisionInstitution(options, input)).rejects.toThrow('Invitation delivery failed')
     const [existing] = await db`select v.id from pagino.initial_owner_invitations v join pagino.institutions i on i.id=v.institution_id where i.slug=${slug}`
-    await db`update pagino.initial_owner_invitations set expires_at = now() - interval '1 minute' where id = ${existing!.id}`
+    await db`update pagino.initial_owner_invitations set created_at = now() - interval '2 minutes', expires_at = now() - interval '1 minute' where id = ${existing!.id}`
     await expect(provisionInstitution(options, input)).rejects.toThrow('Invitation expired')
     expect(sends).toBe(1)
     const [after] = await db`select delivery_status,used_at from pagino.initial_owner_invitations where id=${existing!.id}`
