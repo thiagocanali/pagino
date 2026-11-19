@@ -1,26 +1,17 @@
-import { createHash } from 'node:crypto'
-import { sql } from 'drizzle-orm'
-import { authenticatedUser, AccessError } from '../auth/service'
+import { AccessError } from '../auth/service'
 import type { Authentication } from '../auth/service'
-import { invitationTokenSchema } from '../../shared/schemas/provisioning'
 
 /**
- * The caller must have a current verified Better Auth session.
- * The database function validates recipient, expiry, replay and membership atomically.
+ * Fail closed until acceptance can bind a Better Auth session to the user
+ * inside the privileged PostgreSQL transaction. The previous implementation
+ * passed a user id to a SECURITY DEFINER function; do not restore it.
+ *
+ * The public HTTP endpoint is independently disabled (503).
  */
-export async function acceptInitialOwnerInvitation(runtime: Authentication, headers: Headers, token: unknown) {
-  const parsed = invitationTokenSchema.safeParse(token)
-  if (!parsed.success) throw new AccessError(400)
-  const user = await authenticatedUser(runtime, headers)
-  const digest = createHash('sha256').update(parsed.data).digest('hex')
-  try {
-    const rows = await runtime.domain.execute(sql`select pagino.accept_initial_owner_invitation(${user.id}, ${digest}) as institution_id`)
-    const id = rows[0]?.institution_id
-    if (typeof id !== 'string') throw new Error('Invitation acceptance returned no institution')
-    return { institutionId: id }
-  }
-  catch (error) {
-    if ((error as { code?: string }).code === '22023') throw new AccessError(400)
-    throw error
-  }
+export async function acceptInitialOwnerInvitation(
+  _runtime: Authentication,
+  _headers: Headers,
+  _token: unknown,
+): Promise<never> {
+  throw new AccessError(503)
 }
