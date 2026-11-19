@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { assertRestrictedOperator, parseRole } from '../../server/provisioning/operator-roles'
+import { assertRestrictedOperator, assertExclusiveOperatorGrant, parseRole } from '../../server/provisioning/operator-roles'
 
 const operator = { name: 'provision_operator', rolcanlogin: false, rolinherit: true, rolsuper: false, rolbypassrls: false, rolcreaterole: false, rolcreatedb: false }
 const login = { ...operator, name: 'provision_operator_login', rolcanlogin: true, rolinherit: false }
@@ -48,5 +48,28 @@ describe('PostgreSQL role metadata parsing', () => {
   ])('rejects missing or mistyped privilege metadata', value => {
     expect(parseRole(value)).toBeUndefined()
     expect(() => assertRestrictedOperator(parseRole(value), login)).toThrow()
+  })
+})
+
+describe('exclusive operator role grants', () => {
+  const expected = { name: 'provision_operator', inherits: false, can_set: true }
+  it('accepts only the dedicated SET-only grant', () => {
+    expect(() => assertExclusiveOperatorGrant([expected])).not.toThrow()
+  })
+  it('rejects extra memberships and absent grants', () => {
+    for (const grants of [[], [expected, { name: 'pg_read_all_data', inherits: false, can_set: true }], undefined, {}]) {
+      expect(() => assertExclusiveOperatorGrant(grants)).toThrow()
+    }
+  })
+  it('rejects inherited grants, wrong target, and grants without SET', () => {
+    for (const grant of [
+      { ...expected, inherits: true },
+      { ...expected, can_set: false },
+      { ...expected, name: 'auth_runtime' },
+      { ...expected, inherits: null },
+      { ...expected, can_set: 'true' },
+    ]) {
+      expect(() => assertExclusiveOperatorGrant([grant])).toThrow()
+    }
   })
 })
