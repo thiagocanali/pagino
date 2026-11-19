@@ -35,3 +35,14 @@ export function assertRestrictedOperator(active: Role | undefined, login: Role |
     throw new Error('Privileged operator login forbidden')
   }
 }
+
+/** Reject any extra role membership, even when the login itself has no elevated flags. */
+export function assertExclusiveOperatorGrant(grants: unknown): void {
+  if (!Array.isArray(grants) || grants.length !== 1) throw new Error('Unexpected operator login role grants')
+  const grant: unknown = grants[0]
+  if (!grant || typeof grant !== 'object') throw new Error('Unexpected operator login role grants')
+  const row = grant as Record<string, unknown>
+  if (row.name !== 'provision_operator' || row.inherits !== false || row.can_set !== true) {
+    throw new Error('Unexpected operator login role grants')
+  }
+}
