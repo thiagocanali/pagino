@@ -9,6 +9,7 @@ import { and, eq, isNull, sql } from 'drizzle-orm'
 import postgres from 'postgres'
 import * as identity from '../db/auth-schema'
 import { assertSecureDatabaseUrl } from '../db/connection-security'
+import { assertExclusiveRuntimeGrant } from './runtime-grants'
 import { memberships, institutions, pages, auditLogs } from '../db/schema'
 import { createDomainDatabase, withTenant } from '../db/tenant'
 import { can, isRole, type Permission } from '../../shared/auth/permissions'
@@ -48,6 +49,13 @@ export async function createAuthentication(input: AuthConfig, mail?: AuthMailTra
         row.rolsuper || row.rolbypassrls || row.rolcreaterole || row.rolcreatedb ||
         !row.login_can_login || row.login_inherit || row.login_super || row.login_bypassrls ||
         row.login_createrole || row.login_createdb) throw new Error('Restricted database role required')
+      const grants = await client.execute(sql`
+        select granted.rolname as name, membership.inherit_option as inherits, membership.set_option as can_set
+        from pg_auth_members membership
+        join pg_roles granted on granted.oid = membership.roleid
+        where membership.member = (select oid from pg_roles where rolname = session_user)
+      `)
+      assertExclusiveRuntimeGrant(grants, expected)
     }
     const deliver = async (recipient: { id: string; email: string }, native: string, purpose: 'reset' | 'verify', correlationId: string) => {
       if (!mail) throw new Error('Mail transport unavailable')
