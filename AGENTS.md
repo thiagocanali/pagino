@@ -13,7 +13,7 @@ Siga as instruções do usuário e depois este arquivo. Leia README.md e os docu
 - Alterações em **autenticação, autorização, RLS, migrações, credenciais, permissões, workflows e produção** exigem validação adicional: testes negativos, revisão explícita dos privilégios e confirmação de ambiente. Não aplique migrações no banco principal nem altere produção sem autorização específica. Nunca exponha tokens ou segredos.
 - Preserve a cota gratuita Vercel: `vercel.json` mantém `git.deploymentEnabled=false`. Use CI e build local para alterações intermediárias. Preview/deploy apenas quando necessário e autorizado; não habilite deploy automático, crie projeto extra ou repita tentativas após esgotar a cota.
 - Antes de alterar proteções da main, confira regras efetivas, impacto em colaboradores e permissões disponíveis. Se a API não permitir inspecionar as regras, **não as altere**. Registre a limitação e proponha a configuração para revisão humana.
-- Mantenha documentação em português e identificadores técnicos em inglês. Registre mudanças arquiteturais em `docs/DECISIONS.md`. Preserve alterações de terceiros. Não crie serviços pagos ou recursos externos sem autorização; use dados fictícios e nunca versione segredos ou dumps.
+- Mantenha documentação em português e identificadores técnicos em inglês. Registre mudanças arquiteturais em `docs/DECISIONS.md` e siga `docs/GITHUB_AUTONOMY.md` para auditoria, CI e proteção da main. Preserve alterações de terceiros. Não crie serviços pagos ou recursos externos sem autorização; use dados fictícios e nunca versione segredos ou dumps.
 
 ## Contratos para implementação futura
 
