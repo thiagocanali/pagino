@@ -97,3 +97,11 @@ Próxima execução: acompanhar CI do HEAD e, depois, ensaiar migrations no Neon
 - Teste de conflito de membership existente exige rollback completo: preservar role anterior, token não consumido e nenhum evento de aceite.
 - Esses testes validam a função SQL apenas no banco descartável. **Não autorizam habilitar o endpoint público**: falta vincular de forma não falsificável a identidade autenticada à execução privilegiada.
 - Próximas tarefas P0: (1) confirmar CI do HEAD; (2) definir executor de aceite restrito, com identidade verificável pelo banco e sem user ID controlado pelo chamador; (3) criar cadastro inicial vinculado a convite, mantendo signup público desabilitado; (4) E2E convite→verificação→aceite; (5) homologar Neon com secrets separados, sem produção.
+
+### 04-C — idempotência de entrega de convite (19/11/2026)
+
+- CI `44516703810` aprovada no SHA `78ab387`, incluindo validação de grants exclusivos dos logins de runtime.
+- Corrigida janela de corrida: anteriormente o advisory lock transacional terminava **antes** do envio de e-mail, permitindo dois envios concorrentes do mesmo convite. Agora o serviço offline usa advisory lock **de sessão** no cliente PostgreSQL dedicado (`max: 1`), mantendo a exclusividade durante provisionamento, envio e atualização de status, com liberação em `finally`.
+- Testes de integração adicionados para (a) duas execuções simultâneas com mesma chave produzirem **um envio** e uma instituição; (b) falha do transporte seguida de retry preservar instituição, convite e auditoria, marcando status `failed` e depois `sent`.
+- A exclusividade vale entre operadores conectados ao **mesmo PostgreSQL**. A entrega de e-mail continua sujeita à limitação clássica de sistemas externos: falha após o provedor aceitar a mensagem e antes da confirmação no banco pode causar reenvio. Não afirmar garantia exatamente uma vez em falhas de rede; futuramente usar provedor com chave idempotente ou outbox.
+- **Pendente:** CI do novo HEAD; executor de aceite com identidade DB-verificável; signup somente por convite; E2E completo; configuração segura de secrets e transporte real. O endpoint público permanece 503.
