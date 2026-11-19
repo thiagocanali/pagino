@@ -214,6 +214,31 @@ describe('atomic initial owner acceptance', () => {
     expect(counts).toMatchObject({ operations: 1, invitations: 1 })
   })
 
+  it('does not resend or mutate an expired invitation during retry', async () => {
+    const password = randomBytes(24).toString('hex')
+    await db.unsafe(`alter role provision_operator_login password '${password}'`)
+    const operatorUrl = new URL(url!)
+    operatorUrl.username = 'provision_operator_login'
+    operatorUrl.password = password
+    const idempotencyKey = randomUUID()
+    const slug = 'expired-retry-' + randomUUID()
+    const input = { name: 'Expired Retry Tenant', slug, ownerEmail: 'expired-retry@example.test', idempotencyKey }
+    let sends = 0
+    const options = {
+      databaseUrl: operatorUrl.href,
+      appOrigin: 'http://localhost:3000',
+      encryptionSecret: randomBytes(32).toString('hex'),
+      mail: { async send() { sends++; throw new Error('Simulated delivery failure') } },
+    }
+    await expect(provisionInstitution(options, input)).rejects.toThrow('Invitation delivery failed')
+    const [existing] = await db`select v.id from pagino.initial_owner_invitations v join pagino.institutions i on i.id=v.institution_id where i.slug=${slug}`
+    await db`update pagino.initial_owner_invitations set expires_at = now() - interval '1 minute' where id = ${existing!.id}`
+    await expect(provisionInstitution(options, input)).rejects.toThrow('Invitation expired')
+    expect(sends).toBe(1)
+    const [after] = await db`select delivery_status,used_at from pagino.initial_owner_invitations where id=${existing!.id}`
+    expect(after).toMatchObject({ delivery_status: 'failed', used_at: null })
+  })
+
   it('provisions an institution atomically under the restricted operator role', async () => {
     const slug = 'operator-' + randomUUID()
     const key = randomUUID()
