@@ -105,3 +105,10 @@ Próxima execução: acompanhar CI do HEAD e, depois, ensaiar migrations no Neon
 - Testes de integração adicionados para (a) duas execuções simultâneas com mesma chave produzirem **um envio** e uma instituição; (b) falha do transporte seguida de retry preservar instituição, convite e auditoria, marcando status `failed` e depois `sent`.
 - A exclusividade vale entre operadores conectados ao **mesmo PostgreSQL**. A entrega de e-mail continua sujeita à limitação clássica de sistemas externos: falha após o provedor aceitar a mensagem e antes da confirmação no banco pode causar reenvio. Não afirmar garantia exatamente uma vez em falhas de rede; futuramente usar provedor com chave idempotente ou outbox.
 - **Pendente:** CI do novo HEAD; executor de aceite com identidade DB-verificável; signup somente por convite; E2E completo; configuração segura de secrets e transporte real. O endpoint público permanece 503.
+
+### 04-C — novos casos de borda e gate de identidade (19/11/2026)
+
+- CI `44525255137` **success** no commit `54bbc95`, incluindo Playwright e build Vercel; falha anterior era indisponibilidade de pacotes apt do runner.
+- Testes de integração adicionais: reutilização maliciosa de chave idempotente com slug/nome/e-mail diferentes deve ser rejeitada sem novo envio; retry de convite expirado deve falhar sem reenvio nem alteração de estado.
+- Criado `docs/INVITATION_ACCEPTANCE_SECURITY.md` com contrato para sessão Better Auth verificada no próprio PostgreSQL, executor dedicado e matriz de testes obrigatórios. **Documento não representa implementação do aceite**.
+- Próximos passos: confirmar CI dos testes novos; implementar e testar a função com sessão DB-verificável; criar login executor mínimo em migration; integrar cadastro por convite sem signup global; E2E real; somente depois avaliar habilitação do endpoint.
