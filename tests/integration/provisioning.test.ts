@@ -66,6 +66,16 @@ describe('atomic initial owner acceptance', () => {
     expect(logins).toMatchObject({ app_login_safe: true, auth_login_safe: true, app_can_set: true, auth_can_set: true, app_is_auth_member: false, auth_is_app_member: false })
   })
 
+  it('grants the dedicated operator login no other PostgreSQL role memberships', async () => {
+    const grants = await db`
+      select granted.rolname as name, membership.inherit_option as inherits, membership.set_option as can_set
+      from pg_auth_members membership
+      join pg_roles granted on granted.oid = membership.roleid
+      where membership.member = (select oid from pg_roles where rolname = 'provision_operator_login')
+    `
+    expect(grants).toEqual([{ name: 'provision_operator', inherits: false, can_set: true }])
+  })
+
   it('authenticates as the dedicated operator login and assumes only the NOLOGIN role on connection', async () => {
     const password = randomBytes(24).toString('hex')
     // Disposable local PostgreSQL only; no real secrets or remote roles are modified.
