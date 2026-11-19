@@ -1,4 +1,3 @@
-import { AccessError } from '../auth/service'
 import type { Authentication } from '../auth/service'
 
 /**
@@ -13,5 +12,5 @@ export async function acceptInitialOwnerInvitation(
   _headers: Headers,
   _token: unknown,
 ): Promise<never> {
-  throw new AccessError(503)
+  throw new Error('Invitation acceptance is disabled until database-bound session verification is implemented')
 }
