@@ -14,6 +14,11 @@ describe('database connection security', () => {
     expect(() => assertSecureDatabaseUrl('postgres://user:pass@ep.example.neon.tech/pagino?sslmode=require')).not.toThrow()
     expect(() => assertSecureDatabaseUrl('postgresql://user:pass@ep.example.neon.tech/pagino?sslmode=verify-full')).not.toThrow()
   })
+  it('rejects ambiguous TLS switches and missing database host', () => {
+    expect(() => assertSecureDatabaseUrl('postgres://user:pass@ep.example.neon.tech/pagino?sslmode=require&ssl=false')).toThrow(/Ambiguous/)
+    expect(() => assertSecureDatabaseUrl('postgres://user:pass@ep.example.neon.tech/pagino?sslmode=require&ssl=true')).toThrow(/Ambiguous/)
+    expect(() => assertSecureDatabaseUrl('postgres:///pagino?sslmode=require')).toThrow(/hostname/)
+  })
   it('rejects unsupported connection schemes', () => {
     expect(() => assertSecureDatabaseUrl('https://example.com/database')).toThrow(/protocol/)
   })
