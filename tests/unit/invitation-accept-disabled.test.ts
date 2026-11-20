@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { acceptInitialOwnerInvitation } from '../../server/provisioning/accept'
-import type { Authentication } from '../../server/auth/service'
+import type { H3Event } from 'h3'
+import acceptInvitation from '../../server/api/invitations/accept.post'
 
-describe('initial owner acceptance safety gate', () => {
-  it('fails closed before invoking a database operation, even with an apparently valid token', async () => {
-    const runtime = { domain: { execute: () => { throw new Error('Unsafe database function invoked') } } } as unknown as Authentication
-    await expect(acceptInitialOwnerInvitation(runtime, new Headers({ cookie: 'session=forged' }), 'a'.repeat(64)))
-      .rejects.toThrow('Invitation acceptance is disabled')
+describe('initial owner acceptance HTTP safety gate', () => {
+  it('keeps HTTP acceptance unavailable while the internal executor is integrated', async () => {
+    await expect(async () => acceptInvitation({} as H3Event))
+      .rejects.toMatchObject({ statusCode: 503 })
   })
 })
