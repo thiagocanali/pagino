@@ -47,6 +47,8 @@ export async function acceptInitialOwnerInvitation(
     if (error instanceof postgres.PostgresError && error.code === '22023' && error.message === 'INVALID_INVITATION') {
       throw new AccessError(400)
     }
+    // Database error details may contain credentials or query parameters.
+    // eslint-disable-next-line preserve-caught-error
     throw new Error('Invitation acceptance unavailable')
   }
   finally {

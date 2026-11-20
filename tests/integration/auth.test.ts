@@ -99,7 +99,7 @@ describe('real authentication and authorization', () => {
         await tx`delete from pagino.memberships where institution_id = ${tenant}`
         await tx`delete from pagino.initial_owner_invitations where institution_id = ${tenant}`
         await tx`delete from pagino.institutions where id = ${tenant}`
-      `)
+      })
     }
   })
 
