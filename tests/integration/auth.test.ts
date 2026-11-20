@@ -1,4 +1,4 @@
-import { randomBytes, randomUUID } from 'node:crypto'
+import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import postgres from 'postgres'
 import { drizzle } from 'drizzle-orm/postgres-js'
@@ -9,6 +9,7 @@ import { startLocalMailCollector } from '../helpers/local-mail'
 import { localMailTransport } from '../../server/auth/mail'
 import { createAuthentication, handleAuthentication, authenticatedUser, listInstitutions, readInstitution, type Authentication } from '../../server/auth/service'
 import { user, account, session, emailChallenges, verification, rateLimit } from '../../server/db/auth-schema'
+import { acceptInitialOwnerInvitation } from '../../server/provisioning/accept'
 import { institutions, memberships, sites, pages } from '../../server/db/schema'
 
 const connection = process.env.PAGINO_TEST_DATABASE_URL
@@ -59,6 +60,49 @@ beforeAll(async () => {
 afterAll(async () => { await runtime?.close(); await collector?.close(); await admin.end() })
 
 describe('real authentication and authorization', () => {
+  it('accepts a first owner using a real Better Auth cookie and restricted PostgreSQL login', async () => {
+    const rolePassword = randomBytes(24).toString('hex')
+    await admin.unsafe(`alter role invitation_acceptor_login password '${rolePassword}'`)
+      .catch(() => { throw new Error('Invitation executor setup failed') })
+    const executor = new URL(connection!)
+    executor.username = 'invitation_acceptor_login'
+    executor.password = rolePassword
+    const tenant = randomUUID()
+    const token = randomBytes(32).toString('hex')
+    const digest = createHash('sha256').update(token).digest('hex')
+    const { cookie, headers } = await login('192.0.2.60')
+    await admin.begin(async tx => {
+      await tx`insert into pagino.institutions (id, name, slug) values (${tenant}, 'Invite tenant', ${'invite-' + tenant})`
+      await tx`
+        insert into pagino.initial_owner_invitations (institution_id, recipient_email, token_hash, encrypted_token, expires_at, delivery_status)
+        values (${tenant}, ${email}, ${digest}, 'fixture', now() + interval '1 hour', 'sent')
+      `
+    })
+    try {
+      await expect(acceptInitialOwnerInvitation(runtime, new Headers(), token, executor.href))
+        .rejects.toMatchObject({ status: 401 })
+      const invalidCookie = new Headers({ cookie: cookie.replace(/(session_token=)[^;]+/, '$1invalid') })
+      await expect(acceptInitialOwnerInvitation(runtime, invalidCookie, token, executor.href))
+        .rejects.toMatchObject({ status: 401 })
+      await expect(acceptInitialOwnerInvitation(runtime, headers, token, connection!))
+        .rejects.toThrow('Invitation acceptance unavailable')
+      await expect(acceptInitialOwnerInvitation(runtime, headers, token, executor.href))
+        .resolves.toEqual({ institutionId: tenant })
+      await expect(acceptInitialOwnerInvitation(runtime, headers, token, executor.href))
+        .rejects.toMatchObject({ status: 400 })
+      const [membership] = await admin`select user_id, role from pagino.memberships where institution_id = ${tenant}`
+      expect(membership).toMatchObject({ user_id: member, role: 'owner' })
+    }
+    finally {
+      await admin.begin(async tx => {
+        await tx`delete from pagino.audit_logs where institution_id = ${tenant}`
+        await tx`delete from pagino.memberships where institution_id = ${tenant}`
+        await tx`delete from pagino.initial_owner_invitations where institution_id = ${tenant}`
+        await tx`delete from pagino.institutions where id = ${tenant}`
+      `)
+    }
+  })
+
   it('rejects unsafe configuration and privileged database connections', async () => {
     await expect(createAuthentication({ ...config, authBaseUrl: 'http://public.example.test' })).rejects.toThrow()
     await expect(createAuthentication({ ...config, authSecret: '' })).rejects.toThrow()
