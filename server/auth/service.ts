@@ -8,6 +8,8 @@ import { drizzle } from 'drizzle-orm/postgres-js'
 import { and, eq, isNull, sql } from 'drizzle-orm'
 import postgres from 'postgres'
 import * as identity from '../db/auth-schema'
+import { assertSecureDatabaseUrl } from '../db/connection-security'
+import { assertExclusiveRuntimeGrant } from './runtime-grants'
 import { memberships, institutions, pages, auditLogs } from '../db/schema'
 import { createDomainDatabase, withTenant } from '../db/tenant'
 import { can, isRole, type Permission } from '../../shared/auth/permissions'
@@ -27,17 +29,33 @@ export async function createAuthentication(input: AuthConfig, mail?: AuthMailTra
   const base = new URL(config.authBaseUrl)
   if (base.origin !== config.authBaseUrl || base.username || base.password || (base.protocol !== 'https:' && !(base.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(base.hostname)))) throw new Error('Invalid authentication origin')
   for (const value of [config.authDatabaseUrl, config.domainDatabaseUrl]) {
-    if (!['postgres:', 'postgresql:'].includes(new URL(value).protocol)) throw new Error('Invalid database protocol')
+    assertSecureDatabaseUrl(value)
   }
-  const identityClient = postgres(config.authDatabaseUrl, { max: 2, prepare: false, connect_timeout: 5, idle_timeout: 20 })
+  const identityClient = postgres(config.authDatabaseUrl, { max: 2, prepare: false, connect_timeout: 5, idle_timeout: 20, connection: { role: 'auth_runtime' } })
   const domain = createDomainDatabase(config.domainDatabaseUrl)
   const db = drizzle(identityClient, { schema: identity })
   try {
     for (const [client, expected] of [[db, 'auth_runtime'], [domain.db, 'app_runtime']] as const) {
-      const query = sql`select current_user as name, rolsuper, rolbypassrls, rolcreaterole, rolcreatedb from pg_roles where rolname = current_user`
+      const query = sql`select current_user as name, session_user as login_name,
+        active.rolsuper, active.rolbypassrls, active.rolcreaterole, active.rolcreatedb,
+        login.rolcanlogin as login_can_login, login.rolinherit as login_inherit,
+        login.rolsuper as login_super, login.rolbypassrls as login_bypassrls,
+        login.rolcreaterole as login_createrole, login.rolcreatedb as login_createdb
+        from pg_roles active, pg_roles login
+        where active.rolname = current_user and login.rolname = session_user`
       const rows = await client.execute(query)
       const row = rows[0]
-      if (!row || row.name !== expected || row.rolsuper || row.rolbypassrls || row.rolcreaterole || row.rolcreatedb) throw new Error('Restricted database role required')
+      if (!row || row.name !== expected || row.login_name !== `${expected}_login` ||
+        row.rolsuper || row.rolbypassrls || row.rolcreaterole || row.rolcreatedb ||
+        !row.login_can_login || row.login_inherit || row.login_super || row.login_bypassrls ||
+        row.login_createrole || row.login_createdb) throw new Error('Restricted database role required')
+      const grants = await client.execute(sql`
+        select granted.rolname as name, membership.inherit_option as inherits, membership.set_option as can_set
+        from pg_auth_members membership
+        join pg_roles granted on granted.oid = membership.roleid
+        where membership.member = (select oid from pg_roles where rolname = session_user)
+      `)
+      assertExclusiveRuntimeGrant(grants, expected)
     }
     const deliver = async (recipient: { id: string; email: string }, native: string, purpose: 'reset' | 'verify', correlationId: string) => {
       if (!mail) throw new Error('Mail transport unavailable')

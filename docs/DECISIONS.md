@@ -96,3 +96,15 @@ User é bloqueado antes de challenge e das operações nativas; conclusão inval
 Transporte de runtime nesta entrega é HTTP autenticado somente em loopback, com redirect recusado e timeout. CLI grava mensagens/configuração privadas e não envia e-mail externo. Fora de loopback essa configuração é rejeitada; transporte comercial depende de autorização/configuração futura. Credenciais não são versionadas.
 
 Solicitações públicas têm resposta genérica e piso de 500 ms para reduzir diferenças de tempo. Falha de envio é marcada failed e logada por requestId, sem PII/tokens; persistência pode falhar antes do registro e ainda gera log seguro. Reenvio ocorre por nova solicitação; worker/retries operacionais, retenção e prova de entrega externa pertencem ao gate de produção. Não prometer tempo constante sob falhas de rede.
+
+## ADR 014 — Aceitação de primeiro owner: privilégio mínimo e bloqueio de lançamento (13/11/2026)
+
+**Status:** decisão de segurança em implementação; TASK 04-C não liberada.
+
+**Contexto.** A função `pagino.accept_initial_owner_invitation(user_id, token_hash)` é `SECURITY DEFINER` e consegue criar uma membership `owner`. Conferir a sessão Better Auth apenas no Nitro não torna o `user_id` verificável pelo PostgreSQL: um cliente com credenciais `app_runtime` poderia chamar diretamente a função com o ID de outra pessoa. A verificação de e-mail e do token dentro da função não elimina esse problema.
+
+**Decisão.** Manter `EXECUTE` revogado para `PUBLIC`, `app_runtime`, `auth_runtime`, `public_reader` e `provision_operator`. O endpoint HTTP de aceite responde 503 enquanto não existir um caminho transacional de identidade **não falsificável pela role do runtime**. Não usar `SET LOCAL pagino.user_id` como prova de identidade, pois o próprio runtime pode definir esse parâmetro. Não disponibilizar cadastro público no Better Auth para contornar a ausência de onboarding por convite.
+
+**Critérios para habilitar.** Projetar uma capacidade de aceite restrita, com vínculo verificável à identidade Better Auth e ao token, escopo mínimo de grants, consumo único, bloqueio concorrente e auditoria na mesma transação. Validar com conexões reais `app_runtime` e `auth_runtime` que não é possível escolher outro usuário, reutilizar token, criar owner sem e-mail verificado ou contornar isolamento. Implementar cadastro exclusivamente por convite e envio funcional antes de disponibilizar o fluxo ao operador.
+
+**Consequência.** A função de aceitação existe para testes privilegiados em PostgreSQL descartável, mas não é uma API liberada. A TASK 04-C e a PR #12 continuam Draft até que os critérios sejam cumpridos; CI verde isoladamente não constitui aceite funcional.

@@ -4,10 +4,10 @@ test('public and admin layouts render, navigate and fit the viewport', async ({ 
   const errors: string[] = []
   page.on('pageerror', error => errors.push(error.message))
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: /Sua instituição/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /O trabalho de vocês merece/ })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
-  await expect(page.getByText(/Cadastros e publicação ainda não estão disponíveis/)).toBeVisible()
-  await page.getByRole('link', { name: /Conheça a fundação/ }).click()
+  await expect(page.getByText(/A plataforma ainda não está aberta para cadastros/)).toBeVisible()
+  await page.getByRole('link', { name: /Conheça o projeto/ }).click()
   await expect(page.getByRole('heading', { name: 'Conexão com o backend' })).toBeVisible()
   await expect(page.getByText('Respondendo', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: /Verificar novamente/ }).click()
@@ -61,7 +61,7 @@ test('unknown pages use a safe recovery screen', async ({ page }) => {
   expect(response?.status()).toBe(404)
   await expect(page.getByRole('heading', { name: 'Esta página não foi encontrada.' })).toBeVisible()
   await page.getByRole('button', { name: /Voltar ao início/ }).click()
-  await expect(page.getByRole('heading', { name: /Sua instituição/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /O trabalho de vocês merece/ })).toBeVisible()
 })
 
 test('authentication stays closed when private configuration is absent', async ({ page }) => {

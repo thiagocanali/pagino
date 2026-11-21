@@ -52,3 +52,63 @@ Se um gate externo bloquear um incremento, documentar a ação necessária e exe
 Recuperação/verificação com transporte HTTP local real, coletor CLI privado, links opacos e consumo transacional. Senha/sessões e todos os links irmãos são atualizados atomicamente; login usa o mesmo lock de usuário para impedir que uma corrida preserve sessão com senha antiga. Suíte local: 95 testes (39 unidade, 34 PG, 22 navegador), lint/tipos e builds.
 
 Próxima entrega 04-C: provisionamento assistido e convite do primeiro owner. O incremento 04-B não configura entrega externa: provider real, fila/retries operacionais, retenção/purga e homologação continuam gates antes do piloto. Respostas genéricas e piso de 500 ms reduzem enumeração, sem promessa de latência constante sob falha de transporte; transporte externo requer revisão própria.
+
+## 04-C — estado verificável e ordem de desbloqueio (15/11/2026)
+
+- **CI histórica:** run `43508060910` verde no commit `91fbbb5`; isso valida somente aquele SHA. Os commits recentes da branch exigem CI verde própria.
+- **Implementado na branch:** migrations 0004–0006, schema do convite inicial, idempotência e auditoria operacional, função SQL transacional, role de operador delegada, logins NOINHERIT separados para app/auth, validação de `current_user` e `session_user`, e testes de integração para privilégios.
+- **Neon isolado:** migrations 0000–0006 aplicadas na branch não padrão `pagino-task-04c-validation`; catálogo confirmou RLS/FORCE RLS, grants restritos e atributos dos logins. Nenhuma migration foi aplicada na branch principal.
+- **Bloqueado por segurança:** endpoint HTTP de aceite responde 503; cadastro público Better Auth permanece desligado. A função `SECURITY DEFINER` não recebe `EXECUTE` das roles de runtime. A função SQL atual ainda recebe user ID como argumento; falta prova de identidade verificável pelo banco, sem aceitar ID arbitrário.
+- **Bloqueado operacionalmente:** os logins `app_runtime_login`, `auth_runtime_login` e `provision_operator_login` foram criados apenas na branch Neon isolada. As senhas e secrets de execução não foram configurados; não reutilizar credenciais de migração nem outros produtos.
+- **Correção em progresso:** Postgres.js recebe a role assumida pelo parâmetro de startup `connection: { role: 'app_runtime' | 'auth_runtime' | 'provision_operator' }`. A forma anterior com `connection.options` não aplicava a role corretamente; o CI encontrou a falha de permissão de schema e a implementação foi corrigida. A validação final desse ajuste está pendente de CI.
+- **Sequência P0:** (1) fechar CI completa, incluindo E2E auth; (2) projetar execução de aceite com identidade DB-verificável e sem `user_id` arbitrário; (3) exercitar SQL direto com logins dedicados, concorrência, replay, expiração e falha de auditoria; (4) concluir CLI offline, rotação/reenvio e recuperação idempotente; (5) E2E ponta a ponta e revisão de segurança.
+- **Gates externos:** configurar credenciais e secrets no Neon por procedimento seguro; transporte real de e-mail, homologação Vercel e autorização de preview/deploy permanecem pendentes.
+
+### 04-C — validação transacional do operador (15/11/2026)
+
+Os testes de integração exercitam a role delegada em PostgreSQL descartável, criando instituição, site, convite pendente, chave de idempotência e evento de auditoria na mesma transação. Um teste adicional força rejeição da auditoria pela policy RLS e exige rollback da instituição e do site. Isso não configura credencial operacional nem habilita o aceite do convite.
+
+### Política de deploy econômico — Vercel (15/11/2026)
+
+- **Inspeção direta:** projeto Vercel `pagino` (`prj_8C845XPhi7RkURdCHPzV7Oi8nVqc`), com 3 deployments retornados: dois de produção e um preview antigo; nenhum deployment encontrado para `feat/task-04c-provisioning`. O último de produção está `READY`, mas isso não valida serviços externos.
+- **Controle existente:** `vercel.json` contém `git.deploymentEnabled: false`; manter a integração Git sem deploy automático enquanto o projeto não estiver pronto. Não ativar preview a cada commit, nem mudar configurações de produção para economizar cota.
+- **CI como gate:** `.github/workflows/ci.yml` executa lint, typecheck, unidade, PostgreSQL descartável, builds Nuxt/Vercel e Playwright. A execução `43742809039` passou no SHA `d715945`. Commits intermediários podem cancelar jobs anteriores por `concurrency.cancel-in-progress`; agrupar mudanças coerentes antes de push reduz desperdício de CI.
+- **Política operacional:** fazer commits locais agrupados e push por conjunto validável; reservar previews manuais e autorizados para testes que dependam da hospedagem, preferencialmente após CI verde. Nunca repetir deploy quando houver bloqueio de cota; continuar desenvolvimento/testes sem Vercel.
+- **Limite da conclusão:** a inspeção de deployments mostra que esta branch não gerou previews recentes; não demonstra que outros projetos da conta não estejam consumindo a cota. Revisar a configuração Git Deployment por branch/ambiente no painel antes de qualquer futura ativação, sem alterar produção ou proteções.
+
+## Ciclo de execução em lotes — 15/11/2026
+
+| Prioridade | Entrega | Estado | Evidência e próximo passo |
+| --- | --- | --- | --- |
+| P0 | CI anterior do provisionamento | Validada | Run 43750685499, SHA eea5b4b, success |
+| P0 | Persistência do status de entrega de convite | Em andamento | UPDATE condicional e RETURNING; aguarda CI do HEAD |
+| P0 | Verificação de privilégios do login operacional | Em andamento | Validação de current_user e session_user, com testes unitários; aguarda CI |
+| P0 | Aceite de convite vinculado a identidade segura | Bloqueada | Função SQL atual recebe user ID falsificável; endpoint 503 permanece fechado |
+| P1 | Migrations e RLS em branch Neon isolada | Pendente | Não aplicar migrations no banco principal; revisar compatibilidade e papéis |
+| P1 | Bootstrap delegado da role NOLOGIN | Pendente | Projetar login mínimo com SET ROLE transacional, sem grants de runtime |
+| P1 | CI do lote final | Pendente | Verificar run do SHA final, corrigir eventuais falhas |
+
+Próxima execução: acompanhar CI do HEAD e, depois, ensaiar migrations no Neon isolado. A PR #12 continua draft, sem deploy e sem merge.
+
+### 04-C — testes transacionais adicionais (16/11/2026)
+
+- CI `43993461644` verde no SHA `70db1bb`, incluindo check, banco descartável, E2E de autenticação e build Vercel. Não representa aprovação dos commits posteriores.
+- Testes de integração novos exercitam **duas tentativas concorrentes** de aceite do mesmo token: exatamente uma pode ter sucesso, com uma única membership e auditoria; o token cifrado deve ser limpo.
+- Teste de conflito de membership existente exige rollback completo: preservar role anterior, token não consumido e nenhum evento de aceite.
+- Esses testes validam a função SQL apenas no banco descartável. **Não autorizam habilitar o endpoint público**: falta vincular de forma não falsificável a identidade autenticada à execução privilegiada.
+- Próximas tarefas P0: (1) confirmar CI do HEAD; (2) definir executor de aceite restrito, com identidade verificável pelo banco e sem user ID controlado pelo chamador; (3) criar cadastro inicial vinculado a convite, mantendo signup público desabilitado; (4) E2E convite→verificação→aceite; (5) homologar Neon com secrets separados, sem produção.
+
+### 04-C — idempotência de entrega de convite (19/11/2026)
+
+- CI `44516703810` aprovada no SHA `78ab387`, incluindo validação de grants exclusivos dos logins de runtime.
+- Corrigida janela de corrida: anteriormente o advisory lock transacional terminava **antes** do envio de e-mail, permitindo dois envios concorrentes do mesmo convite. Agora o serviço offline usa advisory lock **de sessão** no cliente PostgreSQL dedicado (`max: 1`), mantendo a exclusividade durante provisionamento, envio e atualização de status, com liberação em `finally`.
+- Testes de integração adicionados para (a) duas execuções simultâneas com mesma chave produzirem **um envio** e uma instituição; (b) falha do transporte seguida de retry preservar instituição, convite e auditoria, marcando status `failed` e depois `sent`.
+- A exclusividade vale entre operadores conectados ao **mesmo PostgreSQL**. A entrega de e-mail continua sujeita à limitação clássica de sistemas externos: falha após o provedor aceitar a mensagem e antes da confirmação no banco pode causar reenvio. Não afirmar garantia exatamente uma vez em falhas de rede; futuramente usar provedor com chave idempotente ou outbox.
+- **Pendente:** CI do novo HEAD; executor de aceite com identidade DB-verificável; signup somente por convite; E2E completo; configuração segura de secrets e transporte real. O endpoint público permanece 503.
+
+### 04-C — novos casos de borda e gate de identidade (19/11/2026)
+
+- CI `44525255137` **success** no commit `54bbc95`, incluindo Playwright e build Vercel; falha anterior era indisponibilidade de pacotes apt do runner.
+- Testes de integração adicionais: reutilização maliciosa de chave idempotente com slug/nome/e-mail diferentes deve ser rejeitada sem novo envio; retry de convite expirado deve falhar sem reenvio nem alteração de estado.
+- Criado `docs/INVITATION_ACCEPTANCE_SECURITY.md` com contrato para sessão Better Auth verificada no próprio PostgreSQL, executor dedicado e matriz de testes obrigatórios. **Documento não representa implementação do aceite**.
+- Próximos passos: confirmar CI dos testes novos; implementar e testar a função com sessão DB-verificável; criar login executor mínimo em migration; integrar cadastro por convite sem signup global; E2E real; somente depois avaliar habilitação do endpoint.

@@ -19,9 +19,9 @@ export async function protectedOperation<T>(event: H3Event, operation: (auth: Au
   try { return await operation(await getAuthentication(event)) }
   catch (error) {
     if (error instanceof AccessError) {
-      const messages = { 401: 'Entre para continuar.', 403: 'Você não tem permissão para esta ação.', 404: 'Recurso não encontrado.' } as const
+      const messages = { 400: 'Convite inválido, expirado ou já utilizado.', 401: 'Entre para continuar.', 403: 'Você não tem permissão para esta ação.', 404: 'Recurso não encontrado.' } as const
       const status = error.status as keyof typeof messages
-      throw apiError(status, { code: status === 401 ? 'UNAUTHORIZED' : status === 403 ? 'FORBIDDEN' : 'NOT_FOUND', message: messages[status], requestId: String(event.context.requestId) })
+      throw apiError(status, { code: status === 400 ? 'INVALID_REQUEST' : status === 401 ? 'UNAUTHORIZED' : status === 403 ? 'FORBIDDEN' : 'NOT_FOUND', message: messages[status], requestId: String(event.context.requestId) })
     }
     throw unavailable(event)
   }

@@ -3,9 +3,11 @@ import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import { z } from 'zod'
 import * as schema from './schema'
+import { assertSecureDatabaseUrl } from './connection-security'
 
 export function createDomainDatabase(url: string) {
-  const client = postgres(url, { max: 2, prepare: false, connect_timeout: 5, idle_timeout: 20 })
+  assertSecureDatabaseUrl(url)
+  const client = postgres(url, { max: 2, prepare: false, connect_timeout: 5, idle_timeout: 20, connection: { role: 'app_runtime' } })
   return { db: drizzle(client, { schema }), close: () => client.end() }
 }
 
