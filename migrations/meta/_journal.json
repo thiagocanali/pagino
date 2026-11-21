@@ -57,6 +57,13 @@
       "when": 1794762000000,
       "tag": "0007_session_bound_invitation_acceptance",
       "breakpoints": false
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794763000000,
+      "tag": "0008_invited_owner_registration",
+      "breakpoints": false
     }
   ]
 }

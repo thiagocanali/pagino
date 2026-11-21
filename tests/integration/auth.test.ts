@@ -9,6 +9,7 @@ import { startLocalMailCollector } from '../helpers/local-mail'
 import { localMailTransport } from '../../server/auth/mail'
 import { createAuthentication, handleAuthentication, authenticatedUser, listInstitutions, readInstitution, type Authentication } from '../../server/auth/service'
 import { user, account, session, emailChallenges, verification, rateLimit } from '../../server/db/auth-schema'
+import { registerInvitedOwner } from '../../server/provisioning/register'
 import { acceptInitialOwnerInvitation } from '../../server/provisioning/accept'
 import { institutions, memberships, sites, pages } from '../../server/db/schema'
 
@@ -78,6 +79,42 @@ describe('real authentication and authorization', () => {
         values (${tenant}, ${email}, ${digest}, 'fixture', now() + interval '1 hour', 'sent')
       `
     })
+    const invitedEmail = `new-owner-${tenant}@example.test`
+    const invitedTenant = randomUUID()
+    const invitedToken = randomBytes(32).toString('hex')
+    const invitedDigest = createHash('sha256').update(invitedToken).digest('hex')
+    await admin.begin(async tx => {
+      await tx`insert into pagino.institutions (id, name, slug) values (${invitedTenant}, 'New owner tenant', ${'invite-' + invitedTenant})`
+      await tx`
+        insert into pagino.initial_owner_invitations (institution_id, recipient_email, token_hash, encrypted_token, expires_at, delivery_status)
+        values (${invitedTenant}, ${invitedEmail}, ${invitedDigest}, 'fixture', now() + interval '1 hour', 'sent')
+      `
+    })
+    const registration = { token: invitedToken, email: invitedEmail, name: 'New owner', password: 'new-owner-password' }
+    await expect(registerInvitedOwner(runtime, { ...registration, email }, executor.href))
+      .rejects.toMatchObject({ status: 400 })
+    await Promise.all([
+      registerInvitedOwner(runtime, registration, executor.href),
+      registerInvitedOwner(runtime, registration, executor.href),
+    ])
+    await registerInvitedOwner(runtime, { ...registration, password: 'replacement-password' }, executor.href)
+    const [registered] = await db.select().from(user).where(eq(user.email, invitedEmail))
+    expect(registered).toMatchObject({ emailVerified: false, name: registration.name })
+    expect(await db.select().from(account).where(eq(account.userId, registered!.id))).toHaveLength(1)
+    expect(await db.select().from(memberships).where(eq(memberships.userId, registered!.id))).toHaveLength(0)
+    const credentials = { email: invitedEmail, password: registration.password }
+    expect((await handleAuthentication(runtime, request('sign-in/email', credentials), '192.0.2.61')).status).toBe(401)
+    expect((await handleAuthentication(runtime, request('send-verification-email', { email: invitedEmail }), '192.0.2.62')).status).toBe(200)
+    const message = collector.messages.find(item => item.to === invitedEmail)
+    const verificationToken = message?.text.match(/#([a-f0-9]{64})/)?.[1]
+    expect(verificationToken).toBeDefined()
+    expect((await handleAuthentication(runtime, request('verify-email', { token: verificationToken }), '192.0.2.63')).status).toBe(200)
+    const signIn = await handleAuthentication(runtime, request('sign-in/email', credentials), '192.0.2.64')
+    expect(signIn.status).toBe(200)
+    const invitedCookie = signIn.headers.getSetCookie().map(value => value.split(';')[0]).join('; ')
+    await expect(acceptInitialOwnerInvitation(runtime, new Headers({ cookie: invitedCookie }), invitedToken, executor.href))
+      .resolves.toEqual({ institutionId: invitedTenant })
+
     try {
       await expect(acceptInitialOwnerInvitation(runtime, new Headers(), token, executor.href))
         .rejects.toMatchObject({ status: 401 })
