@@ -165,8 +165,8 @@ describe('real authentication and authorization', () => {
           values (
             ${tenant}, ${candidateEmail}, ${candidateDigest}, 'fixture',
             now() - interval '2 hours',
-            ${scenario === 'expired' ? new Date(Date.now() - 60_000) : new Date(Date.now() + 3_600_000)},
-            ${scenario === 'used' ? new Date() : null},
+            case when ${scenario === 'expired'} then now() - interval '1 minute' else now() + interval '1 hour' end,
+            case when ${scenario === 'used'} then now() else null end,
             ${scenario === 'pending' || scenario === 'failed' ? scenario : 'sent'}
           )
         `
