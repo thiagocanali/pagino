@@ -27,6 +27,27 @@ beforeAll(async () => {
 afterAll(async () => { await db.end() })
 
 describe('atomic initial owner acceptance', () => {
+
+  it('limits invitation eligibility lookup to the dedicated executor without granting account access', async () => {
+    for (const role of ['app_runtime', 'auth_runtime', 'public_reader', 'provision_operator']) {
+      const [privilege] = await db`
+        select has_function_privilege(${role}, 'pagino.can_register_initial_owner(text,text)', 'EXECUTE') as allowed
+      `
+      expect(privilege?.allowed, role).toBe(false)
+    }
+    await db.begin(async tx => {
+      await tx`set local role invitation_acceptor`
+      const [eligibility] = await tx`
+        select pagino.can_register_initial_owner(${digest}, 'invite-owner@example.test') as eligible,
+          pagino.can_register_initial_owner(${digest}, 'invite-wrong@example.test') as wrong_recipient
+      `
+      expect(eligibility).toMatchObject({ eligible: true, wrong_recipient: false })
+      await expect(tx.savepoint(sp => sp`select * from pagino_auth."user"`)).rejects.toThrow()
+      await expect(tx.savepoint(sp => sp`select * from pagino.initial_owner_invitations`)).rejects.toThrow()
+    })
+  })
+
+
   it('binds acceptance to a valid database session and grants only the session entry point', async () => {
     const [privileges] = await db`
       select

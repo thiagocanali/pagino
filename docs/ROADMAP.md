@@ -1,5 +1,7 @@
 # Roadmap de implementação
 
+> Revisão vigente: [estado verificado em 21/11/2026](PROJECT_STATUS.md). Os registros datados abaixo preservam contexto histórico; declarações de pendência antigas sobre o executor interno e CI foram superadas pela revisão. O bloqueio HTTP e o estado draft da TASK 04-C continuam vigentes.
+
 Estado em 12/11/2026. A numeração vigente segue as fases solicitadas pelo proprietário. P0 indica fundação/segurança ou gate de liberação; P1 indica incremento de produto. Cada linha futura deve resultar em comportamento demonstrável, validação e PR revisável.
 
 ## Entregue e validado

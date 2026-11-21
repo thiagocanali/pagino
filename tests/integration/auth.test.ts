@@ -140,6 +140,54 @@ describe('real authentication and authorization', () => {
     }
   })
 
+
+  it.each(['pending', 'failed', 'expired', 'used', 'suspended', 'wrong-token'] as const)(
+    'rejects invited registration for %s without creating credentials or ownership',
+    async scenario => {
+      const rolePassword = randomBytes(24).toString('hex')
+      await admin.unsafe(`alter role invitation_acceptor_login password '${rolePassword}'`)
+        .catch(() => { throw new Error('Invitation executor setup failed') })
+      const executor = new URL(connection!)
+      executor.username = 'invitation_acceptor_login'
+      executor.password = rolePassword
+      const tenant = randomUUID()
+      const candidateEmail = `rejected-${tenant}@example.test`
+      const candidateToken = randomBytes(32).toString('hex')
+      const candidateDigest = createHash('sha256').update(candidateToken).digest('hex')
+      await admin.begin(async tx => {
+        await tx`
+          insert into pagino.institutions (id, name, slug, status)
+          values (${tenant}, 'Rejected registration', ${'rejected-' + tenant}, ${scenario === 'suspended' ? 'suspended' : 'active'})
+        `
+        await tx`
+          insert into pagino.initial_owner_invitations
+            (institution_id, recipient_email, token_hash, encrypted_token, created_at, expires_at, used_at, delivery_status)
+          values (
+            ${tenant}, ${candidateEmail}, ${candidateDigest}, 'fixture',
+            now() - interval '2 hours',
+            ${scenario === 'expired' ? new Date(Date.now() - 60_000) : new Date(Date.now() + 3_600_000)},
+            ${scenario === 'used' ? new Date() : null},
+            ${scenario === 'pending' || scenario === 'failed' ? scenario : 'sent'}
+          )
+        `
+      })
+      const beforeMessages = collector.messages.length
+      await expect(registerInvitedOwner(runtime, {
+        token: scenario === 'wrong-token' ? randomBytes(32).toString('hex') : candidateToken,
+        email: candidateEmail, name: 'Rejected owner', password: 'valid-invited-password',
+      }, executor.href)).rejects.toMatchObject({ status: 400 })
+      expect(await db.select().from(user).where(eq(user.email, candidateEmail))).toHaveLength(0)
+      expect(await db.select().from(memberships).where(eq(memberships.institutionId, tenant))).toHaveLength(0)
+      expect(collector.messages).toHaveLength(beforeMessages)
+      const [invitation] = await admin`
+        select delivery_status, used_at, encrypted_token from pagino.initial_owner_invitations where institution_id = ${tenant}
+      `
+      expect(invitation?.delivery_status).toBe(scenario === 'pending' || scenario === 'failed' ? scenario : 'sent')
+      expect(invitation?.used_at !== null).toBe(scenario === 'used')
+      expect(invitation?.encrypted_token).toBe('fixture')
+    },
+  )
+
   it('rejects unsafe configuration and privileged database connections', async () => {
     await expect(createAuthentication({ ...config, authBaseUrl: 'http://public.example.test' })).rejects.toThrow()
     await expect(createAuthentication({ ...config, authSecret: '' })).rejects.toThrow()

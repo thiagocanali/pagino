@@ -4,7 +4,11 @@ Seu site. Seu jeito. Seu controle.
 
 SaaS multi-tenant para igrejas, ONGs, associações e pequenas empresas criarem e administrarem sites institucionais com templates configuráveis. Primeiro template previsto: `institutional-classic`.
 
-## Estado atual — 12/11/2026
+## Estado atual
+
+Revisão de 21/11/2026: a PR #12 está em draft e contém avanços de provisionamento, executor de aceite vinculado à sessão PostgreSQL e cadastro interno por convite. O endpoint público de aceite permanece 503; onboarding não está concluído. Consulte [estado verificado e continuidade](docs/PROJECT_STATUS.md) para separar o que está na main, na branch e pendente.
+
+### Base integrada e histórico
 
 A `main` contém a fundação documental, Nuxt/Vue/TypeScript/Nitro, núcleo PostgreSQL/Drizzle com isolamento RLS e o primeiro incremento de autenticação Better Auth. A PR [#5](https://github.com/thiagocanali/pagino/pull/5) concluiu a integração da persistência; a PR [#6](https://github.com/thiagocanali/pagino/pull/6) integrou login, sessões e acesso institucional após CI aprovada.
 
