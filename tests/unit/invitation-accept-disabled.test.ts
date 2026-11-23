@@ -7,4 +7,12 @@ describe('initial owner acceptance HTTP safety gate', () => {
     await expect(async () => acceptInvitation({} as H3Event))
       .rejects.toMatchObject({ statusCode: 503 })
   })
+  it('does not trust a caller-supplied identity or invitation token', async () => {
+    const event = {
+      context: { auth: { userId: 'forged-owner' } },
+      node: { req: { headers: { authorization: 'Bearer forged-token' } } },
+    } as unknown as H3Event
+    await expect(async () => acceptInvitation(event))
+      .rejects.toMatchObject({ statusCode: 503 })
+  })
 })
