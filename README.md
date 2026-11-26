@@ -4,7 +4,11 @@ Seu site. Seu jeito. Seu controle.
 
 SaaS multi-tenant para igrejas, ONGs, associações e pequenas empresas criarem e administrarem sites institucionais com templates configuráveis. Primeiro template previsto: `institutional-classic`.
 
-## Estado atual — 12/11/2026
+## Estado atual
+
+Revisão de 21/11/2026: a PR #12 está em draft e contém avanços de provisionamento, executor de aceite vinculado à sessão PostgreSQL e cadastro interno por convite. O endpoint público de aceite permanece 503; onboarding não está concluído. Consulte [estado verificado e continuidade](docs/PROJECT_STATUS.md) para separar o que está na main, na branch e pendente.
+
+### Base integrada e histórico
 
 A `main` contém a fundação documental, Nuxt/Vue/TypeScript/Nitro, núcleo PostgreSQL/Drizzle com isolamento RLS e o primeiro incremento de autenticação Better Auth. A PR [#5](https://github.com/thiagocanali/pagino/pull/5) concluiu a integração da persistência; a PR [#6](https://github.com/thiagocanali/pagino/pull/6) integrou login, sessões e acesso institucional após CI aprovada.
 
@@ -29,7 +33,7 @@ Para usar banco autorizado, copie `.env.example` para `.env.local`, preencha as 
 npm run dev -- --dotenv .env.local
 ```
 
-As conexões exigem as roles restritas `auth_runtime` e `app_runtime`; nunca use `postgres`, owner ou BYPASSRLS. `NUXT_AUTH_BASE_URL` deve ser uma origem exata, sem caminho/barra final; HTTPS obrigatório fora de loopback. O servidor Node do build recebe variáveis pelo processo e não carrega `.env.local` automaticamente. Não compartilhe segredos em chat ou Git.
+As conexões usam os logins dedicados `auth_runtime_login` e `app_runtime_login` (NOINHERIT), que assumem as roles restritas `auth_runtime` e `app_runtime` no startup de cada conexão. Nunca use `postgres`, owner ou BYPASSRLS. Configure senhas fora do Git; consulte `docs/NEON_MIGRATION.md`. `NUXT_AUTH_BASE_URL` deve ser uma origem exata, sem caminho/barra final; HTTPS obrigatório fora de loopback. O servidor Node do build recebe variáveis pelo processo e não carrega `.env.local` automaticamente. Não compartilhe segredos em chat ou Git.
 
 ## Verificação reproduzível
 
@@ -78,7 +82,7 @@ Better Auth é a única identidade. Domínio usa `institution_id`, FKs compostas
 
 Reutilizar o projeto Vercel `pagino`. `vercel.json` bloqueia deploys Git automáticos desde a PR #2. A aplicação Nuxt não foi publicada; a integração criou anteriormente um deployment do README inicial e um preview documental, registrados nas decisões. Produção exige autorização explícita.
 
-A integração Supabase dedicada ainda não foi configurada nesta execução. Antes de provisionar, descobrir recursos existentes e obter autorização; não reutilizar bancos de outros produtos. Transporte de e-mail, homologação remota, custos/plano comercial, retenção e avisos de dependências continuam como gates antes do piloto. Nenhum serviço pago está autorizado implicitamente.
+A infraestrutura foi direcionada ao **Neon PostgreSQL**: projeto exclusivo `pagino` (`dark-night-58119391`) criado na região de São Paulo, PostgreSQL 17. A estrutura ainda não foi migrada para esse banco, e nenhuma variável de produção foi alterada. Consulte [Migração Neon](docs/NEON_MIGRATION.md) para os gates de TLS, roles, migrations e validação; não reutilize credenciais de outros produtos. Transporte de e-mail, homologação remota, custos/plano comercial, retenção e avisos de dependências continuam como gates antes do piloto. Nenhum serviço pago está autorizado implicitamente.
 
 ## Recuperação e verificação — TASK 04-B
 

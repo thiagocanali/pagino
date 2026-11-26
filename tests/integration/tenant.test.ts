@@ -33,13 +33,13 @@ beforeAll(async () => {
   await migrate(adminDb, { migrationsFolder: 'migrations' }) // Applying the same migration set again is a no-op.
   const rolePassword = randomBytes(24).toString('hex')
   // Random hexadecimal only, not user-controlled; PostgreSQL utility statements do not accept bind parameters here.
-  await admin.unsafe(`alter role app_runtime login password '${rolePassword}'`).catch(() => { throw new Error('Test role bootstrap failed') })
-  await admin.unsafe(`alter role auth_runtime login password '${rolePassword}'`).catch(() => { throw new Error('Test auth role bootstrap failed') })
+  await admin.unsafe(`alter role app_runtime_login login password '${rolePassword}'`).catch(() => { throw new Error('Test role bootstrap failed') })
+  await admin.unsafe(`alter role auth_runtime_login login password '${rolePassword}'`).catch(() => { throw new Error('Test auth role bootstrap failed') })
   const runtimeURL = new URL(connection!)
-  runtimeURL.username = 'app_runtime'; runtimeURL.password = rolePassword
+  runtimeURL.username = 'app_runtime_login'; runtimeURL.password = rolePassword
   runtime = createDomainDatabase(runtimeURL.href)
-  runtimeURL.username = 'auth_runtime'
-  identityClient = postgres(runtimeURL.href, { max: 1, prepare: false })
+  runtimeURL.username = 'auth_runtime_login'
+  identityClient = postgres(runtimeURL.href, { max: 1, prepare: false, connection: { role: 'auth_runtime' } })
   identityDb = drizzle(identityClient, { schema: authSchema })
   await adminDb.insert(authSchema.user).values([
     { id: userA, name: 'Owner A', email: 'owner-a@example.test', emailVerified: true },
@@ -67,8 +67,16 @@ describe('PostgreSQL tenant boundary', () => {
     const roles = await runtime.db.execute(sql`select rolsuper, rolbypassrls from pg_roles where rolname = current_user`)
     expect(roles[0]).toMatchObject({ rolsuper: false, rolbypassrls: false })
     const tables = await admin`select relrowsecurity, relforcerowsecurity, pg_get_userbyid(relowner) as owner from pg_class c join pg_namespace n on n.oid = c.relnamespace where n.nspname = 'pagino' and c.relkind = 'r'`
-    expect(tables).toHaveLength(5)
+    expect(tables).toHaveLength(8)
     for (const table of tables) expect(table).toMatchObject({ relrowsecurity: true, relforcerowsecurity: true, owner: 'postgres' })
+  })
+
+  it('denies runtime invocation of privileged owner invitation acceptance', async () => {
+    // A compromised domain connection must not be able to choose an arbitrary
+    // verified user id and mint an owner membership via SECURITY DEFINER.
+    await expect(runtime.db.execute(sql`select pagino.accept_initial_owner_invitation('fixture-owner-a', repeat('0', 64))`)).rejects.toThrow()
+    const privileges = await admin`select has_function_privilege('app_runtime', 'pagino.accept_initial_owner_invitation(text,text)', 'EXECUTE') as can_execute`
+    expect(privileges[0]?.can_execute).toBe(false)
   })
 
   it('denies every domain read without context', async () => {

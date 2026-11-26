@@ -26,12 +26,12 @@ let startupLog = ''
 test.beforeAll(async () => {
   await migrate(db, { migrationsFolder: 'migrations' })
   const rolePassword = randomBytes(24).toString('hex')
-  await admin.unsafe(`alter role app_runtime login password '${rolePassword}'`).catch(() => { throw new Error('Role setup failed') })
-  await admin.unsafe(`alter role auth_runtime login password '${rolePassword}'`).catch(() => { throw new Error('Role setup failed') })
+  await admin.unsafe(`alter role app_runtime_login login password '${rolePassword}'`).catch(() => { throw new Error('Role setup failed') })
+  await admin.unsafe(`alter role auth_runtime_login login password '${rolePassword}'`).catch(() => { throw new Error('Role setup failed') })
   const url = new URL(connection!)
-  url.username = 'auth_runtime'; url.password = rolePassword
+  url.username = 'auth_runtime_login'; url.password = rolePassword
   const authDatabaseUrl = url.href
-  url.username = 'app_runtime'
+  url.username = 'app_runtime_login'
   await db.insert(user).values([{ id, name: 'Pessoa de teste', email, emailVerified: true }, { id: verificationUser, name: 'E-mail pendente', email: verificationEmail, emailVerified: false }])
   const hashed = await hashPassword(password)
   await db.insert(account).values([id, verificationUser].map(userId => ({ id: randomUUID(), accountId: userId, providerId: 'credential', userId, password: hashed, updatedAt: new Date() })))

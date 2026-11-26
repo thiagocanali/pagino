@@ -67,3 +67,33 @@ export const auditLogs = pagino.table('audit_logs', {
   entityId: uuid('entity_id').notNull(),
   createdAt: createdAt(),
 }, t => [index('audit_tenant_created_index').on(t.institutionId, t.createdAt, t.id)])
+
+/** Operational bootstrap records; no direct runtime grants to these tables. */
+export const initialOwnerInvitations = pagino.table('initial_owner_invitations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  institutionId: uuid('institution_id').notNull().references(() => institutions.id).unique(),
+  recipientEmail: text('recipient_email').notNull(),
+  tokenHash: text('token_hash').notNull().unique(),
+  encryptedToken: text('encrypted_token').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  usedAt: timestamp('used_at', { withTimezone: true }),
+  deliveryStatus: text('delivery_status').notNull().default('pending'),
+  createdAt: createdAt(),
+}, t => [
+  check('initial_owner_invitation_delivery', sql`${t.deliveryStatus} in ('pending','sent','failed')`),
+  check('initial_owner_invitation_email', sql`${t.recipientEmail} = lower(${t.recipientEmail}) and length(${t.recipientEmail}) <= 254`),
+  check('initial_owner_invitation_expiry', sql`${t.expiresAt} > ${t.createdAt}`),
+]).enableRLS()
+
+export const provisioningOperations = pagino.table('provisioning_operations', {
+  idempotencyKey: uuid('idempotency_key').primaryKey(),
+  institutionId: uuid('institution_id').notNull().unique().references(() => institutions.id),
+  createdAt: createdAt(),
+}).enableRLS()
+
+export const operatorAuditLogs = pagino.table('operator_audit_logs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  institutionId: uuid('institution_id').notNull().references(() => institutions.id),
+  action: text('action').notNull(),
+  createdAt: createdAt(),
+}).enableRLS()

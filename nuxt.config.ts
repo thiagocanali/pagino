@@ -1,6 +1,6 @@
 export default defineNuxtConfig({
   compatibilityDate: '2026-11-11',
-  runtimeConfig: { authSecret: '', authBaseUrl: '', authDatabaseUrl: '', domainDatabaseUrl: '', authMailUrl: '', authMailSecret: '' },
+  runtimeConfig: { authSecret: '', authBaseUrl: '', authDatabaseUrl: '', domainDatabaseUrl: '', authMailUrl: '', authMailSecret: '', invitationDatabaseUrl: '' },
   devtools: { enabled: false },
   modules: ['@nuxt/eslint'],
   css: ['~/assets/css/main.css'],

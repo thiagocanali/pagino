@@ -2,16 +2,18 @@
 
 ## Escopo e precedência
 
-Siga as instruções do usuário e depois este arquivo. Leia README.md e os documentos pertinentes antes de alterar o projeto. A TASK 01 é exclusivamente documental. A instrução posterior do proprietário autoriza implementação progressiva a partir da TASK 02, preservando a arquitetura e a segurança.
+Siga as instruções do usuário e depois este arquivo. Leia README.md e os documentos pertinentes antes de alterar o projeto. A implementação é progressiva conforme o roadmap e as decisões arquiteturais, preservando a segurança. Este documento rege também o trabalho de agentes Codex na nuvem.
 
-## Trabalho e revisão
+## Desenvolvimento autônomo com proteção
 
-- Use branch específica por tarefa, commits descritivos e PR com problema, resultado, testes e limitações.
-- Merges autorizados pelo proprietário após validação e checks obrigatórios aprovados. Preserve alterações de terceiros. Não faça deploy em produção sem autorização explícita.
-- Mantenha documentação em português e identificadores técnicos em inglês.
-- Não trate decisões propostas como implementação validada. Registre mudanças arquiteturais em docs/DECISIONS.md.
-- Não crie projetos Vercel adicionais, Supabase ou serviços pagos sem autorização explícita; descubra recursos existentes primeiro.
-- Não altere bancos existentes nesta tarefa. Nunca versione segredos, dumps ou dados reais. Exemplos devem ser fictícios.
+- Trabalhe em lotes de **5 a 10 tarefas relacionadas**. Antes de criar branch/PR, liste as PRs abertas e procure a PR da mesma frente. Atualize essa PR e sua branch quando for seguro; mantenha **no máximo uma PR ativa por frente**, salvo justificativa técnica registrada. Não crie uma PR por tarefa. Se a frente existente estiver em draft, preserve seu estado.
+- Agrupe mudanças coesas em commits descritivos; faça push ao concluir o lote ou em pontos de recuperação relevantes, evitando disparar CI por cada edição pequena. Documente objetivo, riscos, testes, limitações e pendências na PR. Continue tarefas independentes se uma estiver bloqueada.
+- Execute lint, typecheck, testes unitários, integração em banco descartável, E2E e builds aplicáveis. Corrija CI; **não declare aprovação antes da conclusão dos checks no SHA atual**. Nunca ignore falhas nem altere testes apenas para ocultá-las.
+- Só considere integração quando a PR não estiver em draft, estiver completa, sem riscos de segurança conhecidos, com CI obrigatória verde no HEAD e revisões exigidas satisfeitas. Prefira **squash merge**; auto-merge apenas quando habilitado e autorizado, sem contornar regras de proteção, CODEOWNERS ou revisões. Nunca faça force-push na main, bypass, merge de PR incompleta ou remoção de checks para liberar merge.
+- Alterações em **autenticação, autorização, RLS, migrações, credenciais, permissões, workflows e produção** exigem validação adicional: testes negativos, revisão explícita dos privilégios e confirmação de ambiente. Não aplique migrações no banco principal nem altere produção sem autorização específica. Nunca exponha tokens ou segredos.
+- Preserve a cota gratuita Vercel: `vercel.json` mantém `git.deploymentEnabled=false`. Use CI e build local para alterações intermediárias. Preview/deploy apenas quando necessário e autorizado; não habilite deploy automático, crie projeto extra ou repita tentativas após esgotar a cota.
+- Antes de alterar proteções da main, confira regras efetivas, impacto em colaboradores e permissões disponíveis. Se a API não permitir inspecionar as regras, **não as altere**. Registre a limitação e proponha a configuração para revisão humana.
+- Mantenha documentação em português e identificadores técnicos em inglês. Registre mudanças arquiteturais em `docs/DECISIONS.md` e siga `docs/GITHUB_AUTONOMY.md` para auditoria, CI e proteção da main. Preserve alterações de terceiros. Não crie serviços pagos ou recursos externos sem autorização; use dados fictícios e nunca versione segredos ou dumps.
 
 ## Contratos para implementação futura
 
@@ -27,4 +29,4 @@ Siga as instruções do usuário e depois este arquivo. Leia README.md e os docu
 
 ## Verificação
 
-Nesta tarefa: verificar 13 arquivos, links relativos, coerência entre requisitos/modelo/permissões/roadmap e ausência de código e segredos. Em futuras tarefas, executar os testes adequados descritos em docs/TESTING.md e registrar resultados reais na PR. Teste não executado não pode ser declarado aprovado.
+Em cada lote, execute as verificações aplicáveis de docs/TESTING.md, registre evidências reais na PR e confira o estado da CI no SHA final. Teste não executado não pode ser declarado aprovado.

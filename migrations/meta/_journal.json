@@ -29,6 +29,41 @@
       "when": 1794488298374,
       "tag": "0003_email_challenges",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794570000000,
+      "tag": "0004_initial_owner_provisioning",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794760000000,
+      "tag": "0005_provision_operator_login",
+      "breakpoints": false
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794761000000,
+      "tag": "0006_runtime_logins",
+      "breakpoints": false
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794762000000,
+      "tag": "0007_session_bound_invitation_acceptance",
+      "breakpoints": false
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794763000000,
+      "tag": "0008_invited_owner_registration",
+      "breakpoints": false
     }
   ]
 }
