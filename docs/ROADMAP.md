@@ -52,3 +52,23 @@ Se um gate externo bloquear um incremento, documentar a ação necessária e exe
 Recuperação/verificação com transporte HTTP local real, coletor CLI privado, links opacos e consumo transacional. Senha/sessões e todos os links irmãos são atualizados atomicamente; login usa o mesmo lock de usuário para impedir que uma corrida preserve sessão com senha antiga. Suíte local: 95 testes (39 unidade, 34 PG, 22 navegador), lint/tipos e builds.
 
 Próxima entrega 04-C: provisionamento assistido e convite do primeiro owner. O incremento 04-B não configura entrega externa: provider real, fila/retries operacionais, retenção/purga e homologação continuam gates antes do piloto. Respostas genéricas e piso de 500 ms reduzem enumeração, sem promessa de latência constante sob falha de transporte; transporte externo requer revisão própria.
+
+## Evolução estratégica aprovada em 26/11/2026
+
+O plano abaixo amplia, não cancela, os requisitos anteriores. TASK 04-C continua na PR #12; nenhuma fase posterior é declarada entregue. Contrato: [Owner Studio Architecture](OWNER_STUDIO_ARCHITECTURE.md).
+
+| Lote | Entrega | Aceite mínimo |
+| --- | --- | --- |
+| E01 | Concluir 04-C | Cadastro/aceite por convite, CLI, E2E, grants e revisão |
+| E02 | Platform Ownership | Bootstrap restrito, papéis globais, auditoria, testes de escalada |
+| E03 | Multi-site e 04-D | Migration preservando dados, seleção de site, equipe e isolamento |
+| E04 | Owner Studio e painel 05 | Layouts distintos, configurações persistidas e autorização |
+| E05 | Commercial Workspace | Clientes, projetos privados, briefing, transições e auditoria |
+| E06 | Template/Component Engine | Schemas versionados, renderer seguro, primeiro template institucional |
+| E07 | Editor compartilhado | Páginas, seções, SEO, estilos, revisões, preview e conflitos |
+| E08 | Site Factory | Geração idempotente por segmento, edição e catálogo inicial |
+| E09 | Demo e publicação | Snapshots separados, links revogáveis, mídia, entrega e rollback |
+| E10 | Expansão de catálogo | Meta de 30 templates: 3 institucionais, 4 moda, 3 advocacia, 3 fotografia, 3 automotivo, 3 saúde, 4 negócios locais, 3 portfólio, 4 landing pages |
+| E11 | Homologação | Gates 08-A/B/C, backup, segurança, acessibilidade, piloto autorizado |
+
+Lotes de 5–10 tarefas relacionadas, uma PR por frente, CI obrigatória, squash preferido e sem deploy intermediário. E-commerce transacional e IA paga ficam fora do MVP inicial. As entregas anteriores de eventos, mídia e auditoria continuam obrigatórias conforme escopo original.

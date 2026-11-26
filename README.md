@@ -95,3 +95,7 @@ O coletor escuta apenas em loopback e grava configuração em `.local-mail/colle
 O transporte local é recusado se a origem da aplicação não for loopback. Sem transporte, as capacidades de e-mail ficam desabilitadas e os endpoints retornam 503. Reenvio ocorre por nova solicitação; falhas de entrega ficam identificadas em registros privados/logs sem tokens ou e-mails.
 
 Suíte atual validada localmente: 39 unitários, 34 integrações PG, 10 E2E gerais e 12 E2E autenticados, além do smoke do coletor CLI. A [CI atual](https://github.com/thiagocanali/pagino/actions) registra a validação remota do incremento. Isso não comprova entrega a provedores externos.
+
+## Evolução estratégica aprovada
+
+Pagino Builder e Owner Studio compartilharão editor, templates, componentes e publicação. Site Factory permitirá produção profissional de sites para clientes. Consulte [arquitetura aprovada](docs/OWNER_STUDIO_ARCHITECTURE.md) e [roadmap](docs/ROADMAP.md). São entregas planejadas, não funcionalidades já disponíveis.

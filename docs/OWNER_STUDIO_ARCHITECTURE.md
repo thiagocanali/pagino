@@ -1,0 +1,22 @@
+# Evolução estratégica aprovada — 26/11/2026
+
+## Produto e fronteiras
+Pagino permanece um construtor de sites para usuários autorizados. Owner Studio acrescenta produção profissional para terceiros, sem editor, identidade ou renderizador duplicados. Site Factory gera rascunhos determinísticos a partir de briefing e templates; IA é opcional futura. Template Factory mantém catálogo global versionado. Não prometer e-commerce transacional no MVP: catálogo e contato primeiro.
+
+## Identidade e autorização
+Better Auth permanece identidade única. PLATFORM_OWNER é propriedade global, vinculada ao ID interno de uma conta verificada por bootstrap operacional restrito, não por e-mail fixo, variável pública ou endpoint administrativo. Um único registro de propriedade protegido contra INSERT/UPDATE/DELETE pelos runtimes comuns; recuperação extraordinária offline, auditada e revisada. PLATFORM_ADMIN recebe capacidades explícitas delegadas, nunca propriedade ou poder de elevar privilégios. USER não possui privilégio global. Papéis locais owner/admin/editor/viewer continuam independentes; manager só após necessidade comprovada. Cliente é entidade comercial, não papel global. Nenhum papel global implica BYPASSRLS ou conexão como owner do banco. Operações globais passam por executor mínimo, sessão revalidada, escopo explícito e auditoria atômica. Acesso transversal exige motivo e capacidade específica; leitura também auditada quando sensível. Testar SQL direto e API contra escalada, sessão revogada, grants e acesso cruzado.
+
+## Multi-site
+Preservar institutions como tenant e memberships existentes. Remover unicidade de sites.institution_id somente em migration revisada; preservar FK composta (institution_id,id), IDs e dados existentes. Auditar consultas que pressupõem um único site, slugs, provisionamento, navegação, RLS e publicação. Seleção explícita de site em operações; nunca confiar em tenant/site do cliente. Definir permissões por site quando houver necessidade de acesso parcial. Não conceder acesso a todos os sites de um tenant a um cliente de projeto isolado; usar tenant próprio por cliente quando adequado.
+
+## Owner Studio e projetos
+/owner é layout e API separados de /admin; autorização server-side, não apenas middleware visual. Visão geral, clientes, projetos, criação, catálogo, componentes, demos, publicados, usuários, configurações e indicadores. Entidades propostas clients e commercial_projects com tenant/site, contato, briefing, notas privadas, status, datas e auditoria. Estados: novo contato, planejamento, criação, demo pronta, aguardando aprovação, revisão, aprovado, publicado, entregue, arquivado. Estado comercial não publica nem concede membership. Entrega exige operação explícita, convite e revisão de acesso; preservar IDs e conteúdo, não mover dados entre tenants implicitamente.
+
+## Motor compartilhado
+Templates e componentes têm chaves e versões imutáveis, schemas estritos e renderer allowlist; não executar HTML/JS arbitrário. Páginas mantêm seções tipadas, revisões, optimistic locking, navegação, SEO, estilos e tokens de marca. Editor único para /admin e /owner, com canvas, propriedades, preview responsivo, undo/redo e acessibilidade. Atualização de versão explícita, com preview e rollback; sites existentes não mudam automaticamente. Site Factory cria estrutura de páginas/seções conforme segmento, em transação idempotente; dados ausentes permanecem placeholders claramente marcados, sem inventar depoimentos ou credenciais profissionais.
+
+## Demos e publicação
+Rascunho privado, snapshot de demonstração e snapshot publicado são estados independentes. Links de demo com segredo aleatório armazenado como hash, expiração/revogação, senha opcional com hash e rate limit; sem edição, noindex e no-store, sem dados comerciais internos. Noindex não é autorização. Publicação explícita, atomicidade, versionamento e rollback. Renderer público lê apenas snapshot permitido; mídias respeitam escopo e validade. Revogação deve invalidar acesso/cache. Aprovação comercial não implica publicação.
+
+## Gates
+Neon PostgreSQL isolado, Better Auth, Nuxt/Nitro, Drizzle e RLS preservados. Storage e e-mail reais exigem escolha/autorização e homologação; sem dados sensíveis de saúde no MVP. Nenhuma migration remota ou deploy automático. Testes descartáveis, negativos de isolamento, concorrência, XSS, acessibilidade, responsividade, revogação e recuperação. Cada fase exige CI no HEAD e revisão de segurança; documentação não comprova implementação.

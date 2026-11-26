@@ -29,3 +29,7 @@ Permissões centrais: institution.read/update, membership.manage_limited/manage_
 Não é papel de tenant nem flag isAdmin no cliente. Provisionamento e suspensão no MVP são operações restritas com identidade separada, justificativa e auditoria actor_kind=platform_operator. Sem painel superadmin ou impersonação. Credencial de operador não pertence ao runtime comum. Owner solicita suspensão/exclusão por canal operacional definido no piloto; testes garantem que owners não acessam tais operações via API de tenant.
 
 Visitante lê apenas a publicação ativa e mídias nela referenciadas. Background jobs futuros exigem identidade e contexto de tenant explícitos. Testes completos em [TESTING](TESTING.md).
+
+## Evolução aprovada — escopos distintos
+
+Os papéis locais existentes não conferem privilégios globais. PLATFORM_OWNER e PLATFORM_ADMIN serão implementados separadamente, com bootstrap operacional restrito, capacidades explícitas, sessão validada e auditoria. Não alterar grants ou promover usuários até implementação e testes da fase E02. [Contrato](OWNER_STUDIO_ARCHITECTURE.md).

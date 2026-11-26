@@ -31,3 +31,7 @@ Validar com pelo menos três instituições piloto de perfis diferentes. Medir t
 ## Horizonte
 
 Após o MVP: domínio próprio, novos templates, planos e cobrança, analytics consentido, SEO avançado e fluxos editoriais mais ricos. Priorizar por evidência dos pilotos. IA, comércio, doações, inscrições, CRM e automações não compõem esta primeira entrega.
+
+## Evolução aprovada — 26/11/2026
+
+O construtor independente permanece central. Owner Studio acrescenta produção profissional para terceiros, projetos comerciais privados, briefing, templates por segmento e demonstrações controladas. Ambos usam o mesmo editor e motor de publicação. Consulte [arquitetura](OWNER_STUDIO_ARCHITECTURE.md).

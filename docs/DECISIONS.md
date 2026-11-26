@@ -96,3 +96,7 @@ User é bloqueado antes de challenge e das operações nativas; conclusão inval
 Transporte de runtime nesta entrega é HTTP autenticado somente em loopback, com redirect recusado e timeout. CLI grava mensagens/configuração privadas e não envia e-mail externo. Fora de loopback essa configuração é rejeitada; transporte comercial depende de autorização/configuração futura. Credenciais não são versionadas.
 
 Solicitações públicas têm resposta genérica e piso de 500 ms para reduzir diferenças de tempo. Falha de envio é marcada failed e logada por requestId, sem PII/tokens; persistência pode falhar antes do registro e ainda gera log seguro. Reenvio ocorre por nova solicitação; worker/retries operacionais, retenção e prova de entrega externa pertencem ao gate de produção. Não prometer tempo constante sob falhas de rede.
+
+## Decisão estratégica — 26/11/2026
+
+Aprovada pelo proprietário: Owner Studio, Site Factory, Template Factory, papéis globais separados dos locais, multi-site e editor compartilhado. Preservar Better Auth, Neon, RLS e domínio existente; evolução incremental sem reescrita. [Contrato arquitetural](OWNER_STUDIO_ARCHITECTURE.md). A decisão não habilita privilégios, migrations remotas ou deploys.
