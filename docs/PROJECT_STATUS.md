@@ -35,3 +35,7 @@ Nenhum endpoint foi habilitado, segredo configurado, migration remota aplicada o
 Conectar a jornada pública exclusivamente por convite: endpoint de cadastro e página para token em fragmento; origem/CSRF, limite de corpo, rate limit persistente, respostas sem enumeração e logs sem segredo; envio de verificação pelo transporte existente; retorno ao login/aceite com sessão real; habilitação do aceite somente após matriz negativa e E2E desktop/mobile. Completar CLI operacional e snapshots Drizzle sem drift. Revisar privilégios explicitamente antes de remover draft.
 
 Depois: 04-D equipe/permissões; 05 configurações; 06 institutional-classic; 07 CMS/eventos/mídias/publicação; 08 auditoria operacional e piloto. Não refazer login, recuperação ou provisionamento já existentes.
+
+## Lote HTTP preparatório — 26/11/2026
+
+Configuração privada do executor, tratamento fail-closed de AccessError 503, buckets persistentes reservados para convites e parser HTTP com origem exata, método, MIME e limite de bytes durante leitura. Oito testes unitários novos. O parser ainda não está conectado a endpoints; mapear seus status HTTP explicitamente no próximo incremento. Aceite público permanece 503. CI do novo HEAD necessária; sem migration, credenciais ou deploy.

@@ -130,7 +130,7 @@ export async function readInstitution(runtime: Authentication, userId: string, i
   })
 }
 
-async function consumeLoginAttempt(runtime: Authentication, clientIP: string, bucketName = 'login') {
+export async function consumeLoginAttempt(runtime: Authentication, clientIP: string, bucketName: 'login' | 'email-request' | 'email-complete' | 'invitation-register' | 'invitation-accept' = 'login') {
   const key = bucketName + ':' + createHmac('sha256', runtime.secret).update(clientIP).digest('hex')
   const now = Date.now()
   const reset = sql`${now} - ${identity.rateLimit.lastRequest} >= 60000`
