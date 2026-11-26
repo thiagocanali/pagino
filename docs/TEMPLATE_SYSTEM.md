@@ -31,3 +31,7 @@ Painel edita formulário por seção, apresenta limites, salva explicitamente e 
 Snapshots imutáveis guardam template_version e snapshot_schema_version. Manter renderer das versões retidas; evolução migra rascunho por transformação pura/versionada, preview e publicação explícita. Nunca reinterpretar snapshot antigo silenciosamente. Restauração exige renderer suportado e mídia preservada. Migrações de templates são posteriores ao MVP.
 
 Aceite: dois tenants mantêm identidade/conteúdo independentes; servidor rejeita JSON inválido; preview e snapshot equivalente têm mesmo resultado; teclado e responsividade funcionam; conteúdo malicioso é escapado/sanitizado; versão desconhecida falha preservando publicação anterior. Testes visuais usam fixtures sintéticas estáveis.
+
+## Template Factory — evolução aprovada
+
+Catálogo por segmento, versões imutáveis de templates e componentes, renderer compartilhado e geração determinística por briefing. Atualização explícita, sem alterar sites existentes automaticamente. Meta de 30 modelos após validar um por categoria. [Contrato](OWNER_STUDIO_ARCHITECTURE.md).
